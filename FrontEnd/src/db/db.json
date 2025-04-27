@@ -1,0 +1,13 @@
+{
+  "users": [
+    {
+      "id": "d925",
+      "firstname": "Agus",
+      "lastname": "Tiger",
+      "email": "agus.tiger@gmail.com",
+      "password": "Qwerty123",
+      "confirmPassword": "Qwerty123",
+      "role": "Customer"
+    }
+  ]
+}
