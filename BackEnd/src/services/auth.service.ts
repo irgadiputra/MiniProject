@@ -1,0 +1,227 @@
+import { User } from "@prisma/client";
+import { IRegisterParam, ILoginParam, IUpdateProfileParam } from "../interface/user.interface";
+import { sign } from "jsonwebtoken";
+import prisma from "../lib/prisma";
+import { hash, genSaltSync, compare } from "bcrypt";
+import { SECRET_KEY } from "../config";
+
+async function FindUserByEmail(email: string) {
+  try {
+    const user = await prisma.user.findFirst({
+      select: {
+        email: true,
+        first_name: true,
+        last_name: true,
+        password: true,
+      },
+      where: {
+        email,
+      },
+    });
+    return user;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function RegisterService(param: IRegisterParam & { referral_code?: string }) {
+  try {
+    const isExist = await FindUserByEmail(param.email);
+    const referralBonus = 10000;
+    const referrerBonus = 10000;
+    const now = new Date();
+    const expiryDate = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 3 months from now
+
+    if (isExist) throw new Error("Email sudah terdaftar");
+
+    await prisma.$transaction(async (t) => {
+      let referredById: number | null = null;
+      let newUserPoint = 0;
+
+      if (param.referral_code) {
+        const referrer = await t.user.findUnique({
+          where: { referal_code: param.referral_code },
+        });
+
+        if (!referrer) throw new Error("Kode referral tidak valid");
+
+        // Reward the referrer
+        await t.user.update({
+          where: { id: referrer.id },
+          data: {
+            point: referrer.point + referrerBonus,
+          },
+        });
+
+        referredById = referrer.id;
+        newUserPoint = referralBonus; // reward for being referred
+      }
+
+      const salt = genSaltSync(10);
+      const hashedPassword = await hash(param.password, salt);
+      const referalCode = await generateUniqueReferralCode();
+
+      const newUser = await t.user.create({
+        data: {
+          first_name: param.first_name,
+          last_name: param.last_name,
+          email: param.email,
+          password: hashedPassword,
+          is_verified: false,
+          status_role: param.status_role,
+          point: newUserPoint,
+          referal_code: referalCode,
+          referred_by: referredById,
+        },
+      });
+
+      // if new user got points, add history
+      if (newUserPoint > 0) {
+        await t.pointHistory.create({
+          data: {
+            userId: newUser.id,
+            points: newUserPoint,
+            description: "Referral bonus (used someone’s referral code)",
+            expiresAt: expiryDate,
+          },
+        });
+      }
+      
+    });
+  } catch (err) {
+    throw err;
+  }
+}
+
+
+async function LoginService(param: ILoginParam) {
+  try {
+    const user = await FindUserByEmail(param.email);
+
+    if (!user) throw new Error("Email tidak terdaftar");
+
+    const checkPass = await compare(param.password, user.password);
+
+    if (!checkPass) throw new Error("Password Salah");
+
+    const payload = {
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+    }
+
+    const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h"});
+
+    return {user: payload, token};
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function UpdateProfileService(param: IUpdateProfileParam) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: param.userId },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const updateData: any = {};
+
+    // Update simple fields
+    if (param.first_name) updateData.first_name = param.first_name;
+    if (param.last_name) updateData.last_name = param.last_name;
+    if (param.email) updateData.email = param.email;
+    if (param.profile_pict) updateData.profile_pict = param.profile_pict;
+
+    // Update password if provided
+    if (param.new_password) {
+      if (!param.old_password) {
+        throw new Error("Old password is required to set a new password");
+      }
+
+      const isMatch = await compare(param.old_password, user.password);
+      if (!isMatch) {
+        throw new Error("Old password is incorrect");
+      }
+
+      const salt = genSaltSync(10);
+      const hashedNewPassword = await hash(param.new_password, salt);
+      updateData.password = hashedNewPassword;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: param.userId },
+      data: updateData,
+    });
+
+    return updatedUser;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function expireUserPoints() {
+  const now = new Date();
+
+  // Step 1: Find expired points
+  const expiredHistories = await prisma.pointHistory.findMany({
+    where: {
+      expiresAt: {
+        lt: now,
+      },
+    },
+  });
+
+  if (expiredHistories.length === 0) {
+    console.log('No expired points to process.');
+    return;
+  }
+
+  console.log(`Processing ${expiredHistories.length} expired point histories.`);
+
+  // Step 2: Process all expired points inside transaction
+  await prisma.$transaction(async (tx) => {
+    for (const history of expiredHistories) {
+      // Decrease user's points
+      await tx.user.update({
+        where: { id: history.userId },
+        data: {
+          point: {
+            decrement: history.points, // safer than doing point - x manually
+          },
+        },
+      });
+
+      // Delete expired point history
+      await tx.pointHistory.delete({
+        where: { id: history.id },
+      });
+    }
+  });
+
+  console.log('Expired points processed successfully.');
+}
+
+async function generateUniqueReferralCode(length = 8) {
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = "";
+
+  while (true) {
+    code = Array.from({ length }, () => charset[Math.floor(Math.random() * charset.length)]).join('');
+
+    const existingUser = await prisma.user.findUnique({
+      where: { referal_code: code },
+    });
+
+    if (!existingUser) break; 
+  }
+
+  return code;
+}
+
+
+
+export { RegisterService, LoginService, UpdateProfileService, expireUserPoints};

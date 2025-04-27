@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+        
+model User {
+  id            Int      @id @default(autoincrement())
+  first_name    String
+  last_name     String
+  email         String   @unique
+  is_verified   Boolean
+  password      String
+  status_role   Int      @default(1)
+  profile_pict  String?
+  referal_code  String   @unique
+  point         Int
+
+  referred_by   Int?     // New: this user was referred by...
+  referrer      User?    @relation("Referrals", fields: [referred_by], references: [id])
+  referrals     User[]   @relation("Referrals") // Users this user referred
+
+  pointHistories PointHistory[]
+}
+
+model PointHistory {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  points      Int      // how many points
+  description String   // example: "Referral bonus", "Ticket Purchase Bonus", etc.
+  expiresAt   DateTime // when this batch of points will expire
+  createdAt   DateTime @default(now())
+}
