@@ -31,17 +31,18 @@ export default function LoginForm() {
         email: data[0].email,
         firstname: data[0].firstname,
         lastname: data[0].lastname,
+        profilepict: data[0].profilepict
     },
       isLogin: true
     };
 
-    const token = sign(stateUser, "test")
+     const token = sign(stateUser, "test")
   
     setCookie("access_token", token)
     dispatch(onLogin(stateUser))
 
       alert("Login Sukses")
-      router.push("/")
+      router.push(`/`);
 
     } catch (err) {
       alert((err as any).message);
@@ -94,7 +95,8 @@ export default function LoginForm() {
 
               <button 
                 type="submit" 
-                className="mt-4 p-2 bg-blue-500 text-white rounded w-full cursor-pointer"
+                className="mt-4 px-10 py-2 bg-emerald-800 text-white rounded-md w-fit mx-auto 
+                            cursor-pointer hover:bg-emerald-600"
               >
                 Submit
               </button>

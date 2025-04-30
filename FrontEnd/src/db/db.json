@@ -7,7 +7,16 @@
       "email": "agus.tiger@gmail.com",
       "password": "Qwerty123",
       "confirmPassword": "Qwerty123",
-      "role": "Customer"
+      "role": "customer"
+    },
+    {
+      "id": "c7b8",
+      "firstname": "sigit",
+      "lastname": "rendang",
+      "email": "sigit@gmail.com",
+      "password": "Zxc12345",
+      "confirmPassword": "Zxc12345",
+      "role": "organiser"
     }
   ]
 }

@@ -1,6 +1,6 @@
-import RegisterPage from '@/pages/register-page'
 import React from 'react'
+import RegisterForm from './components/form'
 
 export default function page() {
-  return <RegisterPage />
+  return <RegisterForm/>
 }

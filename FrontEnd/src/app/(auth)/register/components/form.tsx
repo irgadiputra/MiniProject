@@ -3,11 +3,11 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios';
-import IRegister from '@/pages/register-page/components/type';
+import IRegister from './type';
 import { Formik, Form, Field, FormikProps } from "formik";
-import registerSchema from '@/pages/register-page/components/schema';
+import registerSchema from './schema';
 
-export default function LoginForm() {
+export default function RegisterForm() {
   const router = useRouter();
 
   const initialValue: IRegister = {
@@ -129,21 +129,21 @@ export default function LoginForm() {
                     <Field
                       type="radio"
                       name="role"
-                      value="Customer"
-                      id="Customer"
-                      className="form-radio"
+                      value="customer"
+                      id="customer"
+                      className="form-radio cursor-pointer"
                     />
-                    <label htmlFor="Customer" className="ml-2 text-md">Customer</label>
+                    <label htmlFor="customer" className="ml-2 text-md">Customer</label>
                   </div>
                   <div className="flex items-center">
                     <Field
                       type="radio"
                       name="role"
-                      value="Organiser"
-                      id="Organiser"
-                      className="form-radio"
+                      value="organiser"
+                      id="organiser"
+                      className="form-radio cursor-pointer"
                     />
-                    <label htmlFor="Organiser" className="ml-2 text-md">Organiser</label>
+                    <label htmlFor="organiser" className="ml-2 text-md">Organiser</label>
                   </div>
                 </div>
                 {touched.role && errors.role && (

@@ -1,8 +1,7 @@
-import LoginPage from '@/pages/login-page'
-import React from 'react'
+import LoginForm from './components/form'
 
 export default function page() {
   return (
-    <LoginPage />
+    <LoginForm/>
   )
 }

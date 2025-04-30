@@ -14,7 +14,7 @@ const registerSchema = Yup.object().shape({
     .string()
     .oneOf([Yup.ref('password'), ''], 'Password Harus Cocok')
     .required('Wajib Diisi'),
-  role: Yup.string().oneOf(['Customer', 'Organiser'], "Wajib Diisi").required('Wajib Diisi')
+  role: Yup.string().oneOf(['customer', 'organiser'], "Wajib Diisi").required('Wajib Diisi')
 })
 
 export default registerSchema

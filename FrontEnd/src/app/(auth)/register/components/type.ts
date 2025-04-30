@@ -1,4 +1,4 @@
-type role = "Customer" | "Organiser" | "";
+type role = "customer" | "organiser" | "";
 
 export default interface IRegister {
   firstname: string;

@@ -4,6 +4,7 @@ interface IUser {
   email: string;
   firstname: string;
   lastname: string;
+  profilepict: string;
 }
 
 export interface IAuth {
@@ -15,7 +16,8 @@ const initialState: IAuth = {
   user: {
     email: "",
     firstname: "",
-    lastname: ""
+    lastname: "",
+    profilepict: "",
   },
   isLogin: false
 } 
@@ -29,7 +31,7 @@ export const authSlice = createSlice({
       state.isLogin = true;
     },
     onLogout: (state: IAuth) => {
-      state.user = { email: '', firstname: '', lastname: ''}
+      state.user = { email: '', firstname: '', lastname: '', profilepict:''}
       state.isLogin = false;
     }
   }
