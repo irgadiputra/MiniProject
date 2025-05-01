@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Event" ADD COLUMN     "image" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "price" INTEGER NOT NULL DEFAULT 0;

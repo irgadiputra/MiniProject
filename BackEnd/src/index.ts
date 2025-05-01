@@ -2,6 +2,7 @@ import express, { Application, Request, Response, NextFunction } from "express";
 import path from "path";
 import { PORT } from "./config";
 import AuthRouter from "./routers/auth.router";
+import EventRouter from "./routers/event.router";
 import { expireUserPointsTask } from "./utils/cron/user-point-task";
 
 const port = PORT || 8080;
@@ -22,6 +23,7 @@ app.get(
 );
 
 app.use("/auth", AuthRouter);
+app.use("/event", EventRouter);
 app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
 
 app.listen(port, () => {

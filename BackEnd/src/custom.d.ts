@@ -2,7 +2,8 @@ export interface IUserReqParam {
   email: string;
   first_name: string;
   last_name: string;
-  role: string;
+  id: number;
+
 }
 
 declare global {

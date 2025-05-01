@@ -21,7 +21,7 @@ model User {
   email         String   @unique
   is_verified   Boolean
   password      String
-  status_role   Int      @default(1)
+  status_role   String   @default("User")
   profile_pict  String?
   referal_code  String   @unique
   point         Int
@@ -31,6 +31,8 @@ model User {
   referrals     User[]   @relation("Referrals") // Users this user referred
 
   pointHistories PointHistory[]
+
+  organized_events Event[] // one-to-many relation to events
 }
 
 model PointHistory {
@@ -41,4 +43,22 @@ model PointHistory {
   description String   // example: "Referral bonus", "Ticket Purchase Bonus", etc.
   expiresAt   DateTime // when this batch of points will expire
   createdAt   DateTime @default(now())
+}
+
+model Event {
+  id            Int      @id @default(autoincrement())
+  name          String
+  organizer_id  Int      // foreign key to User
+  organizer     User     @relation(fields: [organizer_id], references: [id]) // relation to User
+  price         Int      @default(0)
+  image         String   @default("")
+  location      String
+  start_date    DateTime
+  end_date      DateTime
+  quota         Int
+  status        String
+  description   String
+
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 }

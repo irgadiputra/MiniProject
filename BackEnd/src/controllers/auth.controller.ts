@@ -4,8 +4,8 @@ import {
   LoginService,
   UpdateProfileService,
 } from "../services/auth.service";
-
 import { IUserReqParam } from "../custom";
+
 
 async function RegisterController(
   req: Request,
@@ -47,7 +47,9 @@ async function UpdateProfileController(
   next: NextFunction
 ) {
   try {
-    const data = await UpdateProfileService(req.body);
+    const file = req.file as Express.Multer.File;
+    const { id } = req.user as IUserReqParam;
+    const data = await UpdateProfileService(file, req.body, id);
 
     res.status(200).cookie("access_token", data.email).send({
       message: "update profile berhasil",
@@ -58,4 +60,6 @@ async function UpdateProfileController(
   }
 }
 
-export { RegisterController, LoginController, UpdateProfileController};
+
+
+export {RegisterController, LoginController, UpdateProfileController};

@@ -23,7 +23,7 @@ async function VerifyToken(req: Request, res: Response, next: NextFunction) {
 
 async function EOGuard(req: Request, res: Response, next: NextFunction) {
     try {
-        if (req.user?.role !== "Event Organizer") throw new Error("Restricted");
+        if (req.user?.email !== "Event Organizer") throw new Error("Restricted");
 
         next();
     } catch(err) {

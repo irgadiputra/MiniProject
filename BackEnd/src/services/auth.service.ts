@@ -1,5 +1,5 @@
 import { User } from "@prisma/client";
-import { IRegisterParam, ILoginParam, IUpdateProfileParam } from "../interface/user.interface";
+import { IRegisterParam, ILoginParam, IUpdateProfileParam, IEvent } from "../interface/user.interface";
 import { sign } from "jsonwebtoken";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
@@ -13,6 +13,7 @@ async function FindUserByEmail(email: string) {
         first_name: true,
         last_name: true,
         password: true,
+        id: true
       },
       where: {
         email,
@@ -108,6 +109,7 @@ async function LoginService(param: ILoginParam) {
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
+      id: user.id,
     }
 
     const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h"});
@@ -118,10 +120,10 @@ async function LoginService(param: ILoginParam) {
   }
 }
 
-async function UpdateProfileService(param: IUpdateProfileParam) {
+async function UpdateProfileService(file: Express.Multer.File, param: IUpdateProfileParam, id: number) {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: param.userId },
+      where: { id: id },
     });
 
     if (!user) {
@@ -134,7 +136,9 @@ async function UpdateProfileService(param: IUpdateProfileParam) {
     if (param.first_name) updateData.first_name = param.first_name;
     if (param.last_name) updateData.last_name = param.last_name;
     if (param.email) updateData.email = param.email;
-    if (param.profile_pict) updateData.profile_pict = param.profile_pict;
+    if (param.point) updateData.point = Number(param.point);
+    if (param.is_verified) updateData.is_verified = Boolean(param.is_verified);
+    if (file) updateData.profile_pict = `/public/avatar/${file.filename}`;
 
     // Update password if provided
     if (param.new_password) {
@@ -153,7 +157,7 @@ async function UpdateProfileService(param: IUpdateProfileParam) {
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: param.userId },
+      where: { id: id },
       data: updateData,
     });
 
