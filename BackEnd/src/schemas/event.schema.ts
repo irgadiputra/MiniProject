@@ -13,3 +13,14 @@ export const eventSchema = z.object({
   price: z.coerce.number().int().nonnegative("Price must be a non-negative number"),
   description: z.string().nonempty("Description is required"),
 });
+
+export const updateEventSchema = z.object({
+  name: z.string().optional(),
+  location: z.string().optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  quota: z.string().optional(), 
+  price: z.string().optional(),
+  description: z.string().optional(),
+  status: z.string().optional(),
+});

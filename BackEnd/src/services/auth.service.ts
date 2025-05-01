@@ -1,9 +1,9 @@
 import { User } from "@prisma/client";
-import { IRegisterParam, ILoginParam, IUpdateProfileParam, IEvent } from "../interface/user.interface";
 import { sign } from "jsonwebtoken";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
 import { SECRET_KEY } from "../config";
+import { LoginParam, RegisterParam, UpdateProfileParam } from "../type/user.type";
 
 async function FindUserByEmail(email: string) {
   try {
@@ -25,7 +25,7 @@ async function FindUserByEmail(email: string) {
   }
 }
 
-async function RegisterService(param: IRegisterParam & { referral_code?: string }) {
+async function RegisterService(param: RegisterParam & { referral_code?: string }) {
   try {
     const isExist = await FindUserByEmail(param.email);
     const referralBonus = 10000;
@@ -95,7 +95,7 @@ async function RegisterService(param: IRegisterParam & { referral_code?: string 
 }
 
 
-async function LoginService(param: ILoginParam) {
+async function LoginService(param: LoginParam) {
   try {
     const user = await FindUserByEmail(param.email);
 
@@ -120,7 +120,7 @@ async function LoginService(param: ILoginParam) {
   }
 }
 
-async function UpdateProfileService(file: Express.Multer.File, param: IUpdateProfileParam, id: number) {
+async function UpdateProfileService(file: Express.Multer.File, param: UpdateProfileParam, id: number) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: id },
@@ -132,7 +132,7 @@ async function UpdateProfileService(file: Express.Multer.File, param: IUpdatePro
 
     const updateData: any = {};
 
-    // Update simple fields
+    // Prepare update fields
     if (param.first_name) updateData.first_name = param.first_name;
     if (param.last_name) updateData.last_name = param.last_name;
     if (param.email) updateData.email = param.email;
@@ -162,6 +162,30 @@ async function UpdateProfileService(file: Express.Multer.File, param: IUpdatePro
     });
 
     return updatedUser;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function KeepLoginService(id: number) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: id },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+    const payload = {
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      id: user.id,
+    }
+
+    const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h"});
+
+    return {user: payload, token};
   } catch (err) {
     throw err;
   }
@@ -228,4 +252,4 @@ async function generateUniqueReferralCode(length = 8) {
 
 
 
-export { RegisterService, LoginService, UpdateProfileService, expireUserPoints};
+export { RegisterService, LoginService, UpdateProfileService, KeepLoginService, expireUserPoints};
