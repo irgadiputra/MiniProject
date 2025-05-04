@@ -19,6 +19,7 @@ export type UpdateEventParam = {
     description?: string;
     price?: number;
 }
+
 export type EventListQuery = {
     skip: number;
     limit: number;
@@ -31,3 +32,15 @@ export type SearchParams = {
     page: number;
     limit: number;
 };
+
+export type CreateVoucher = {
+    code: string;
+    discount: string;
+    start_date: string;
+    end_date: string;
+};
+
+export type ReviewParam = {
+    rating: number;
+    comment: string;
+}

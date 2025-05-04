@@ -30,25 +30,26 @@ model User {
   referrer      User?    @relation("Referrals", fields: [referred_by], references: [id])
   referrals     User[]   @relation("Referrals") // Users this user referred
 
-  pointHistories PointHistory[]
-
-  organized_events Event[] // one-to-many relation to events
+  pointHistories    PointHistory[]
+  organized_events  Event[]
+  transactions      Transaction[]
+  review            Review[]
 }
 
 model PointHistory {
   id          Int      @id @default(autoincrement())
   userId      Int
   user        User     @relation(fields: [userId], references: [id])
-  points      Int      // how many points
-  description String   // example: "Referral bonus", "Ticket Purchase Bonus", etc.
-  expiresAt   DateTime // when this batch of points will expire
+  points      Int      
+  description String   
+  expiresAt   DateTime 
   createdAt   DateTime @default(now())
 }
 
 model Event {
   id            Int      @id @default(autoincrement())
   name          String
-  organizer_id  Int      // foreign key to User
+  organizer_id  Int      
   organizer     User     @relation(fields: [organizer_id], references: [id]) // relation to User
   price         Int      @default(0)
   image         String   @default("")
@@ -61,4 +62,68 @@ model Event {
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+
+  voucher_event Voucher[]
+  transactions  Transaction[]
+  review        Review[]
+}
+
+model Voucher {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  discount     String      
+  event_id     Int
+  event        Event    @relation(fields: [event_id], references: [id])
+  start_date   DateTime
+  end_date     DateTime
+  created_at   DateTime @default(now())
+
+  transactions Transaction[]
+}
+
+model Coupon {
+  id         Int      @id @default(autoincrement())
+  code       String   @unique
+  discount   String   // fixed or % depending on logic
+  start_date DateTime
+  end_date   DateTime
+
+  transactions Transaction[]
+}
+
+model Transaction {
+  id                  Int       @id @default(autoincrement())
+  user_id             Int
+  user                User      @relation(fields: [user_id], references: [id])
+  quantity            Int
+  original_amount     Int       
+  discounted_amount   Int?
+  event_id            Int       
+  event               Event     @relation(fields: [event_id], references: [id])
+  status              String    // waiting for payment, waiting for admin confirmation, done, rejected, expired and canceled
+  total_price         Int
+  point_reward        Int       @default(0)
+  point               Int?      
+  payment_proof       String?   // Add this field to store proof URL
+  payment_uploaded_at DateTime? // For 2-hour tracking
+  confirmed_at        DateTime? // Optional: when organizer confirmed
+  expired_at          DateTime? // When status auto-expires
+  voucher_id          Int?      
+  voucher             Voucher?  @relation(fields: [voucher_id], references: [id])
+  coupon_id           Int?      
+  coupon              Coupon?   @relation(fields: [coupon_id], references: [id])
+  created_at          DateTime  @default(now())
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  rating     Int      // 1 to 5
+  comment    String
+  user_id    Int
+  user       User     @relation(fields: [user_id], references: [id])
+  event_id   Int
+  event      Event    @relation(fields: [event_id], references: [id])
+  created_at DateTime @default(now())
+
+  @@unique([user_id, event_id]) //one review per event
 }

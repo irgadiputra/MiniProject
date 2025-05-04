@@ -24,3 +24,14 @@ export const updateEventSchema = z.object({
   description: z.string().optional(),
   status: z.string().optional(),
 });
+
+export const CreateVoucherSchema = z.object({
+  code: z.string().min(3),
+  discount: z.string().min(1),
+  start_date: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "Invalid start date",
+  }),
+  end_date: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "Invalid end date",
+  }),
+});

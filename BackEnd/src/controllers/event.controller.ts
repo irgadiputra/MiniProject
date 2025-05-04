@@ -5,29 +5,33 @@ import {
   GetEventListService,
   SearchEventService,
   UpdateEventService,
+  CreateVoucherService,
+  deleteVoucherService,
+  getEventAttendeesService,
+  createReviewService,
+  getOrganizerProfileService,
 } from "../services/event.service";
 import { IUserReqParam } from "../custom";
-import { updateEventSchema } from "../schemas/event.schema";
-import { EventParam, UpdateEventParam } from "../type/event.type";
+import { CreateVoucher, EventParam, ReviewParam, UpdateEventParam } from "../type/event.type";
 
 async function CreateEventController(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const { id } = req.user as IUserReqParam;
-      const request = req.body as EventParam;
-      const file = req.file as Express.Multer.File;
-      const data = await CreateEventService(request, id, file);
-  
-      res.status(200).send({
-        message: "Event Berhasil dibuat",
-        data,
-      });
-    } catch (err) {
-      next(err);
-    }
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { id } = req.user as IUserReqParam;
+    const request = req.body as EventParam;
+    const file = req.file as Express.Multer.File;
+    const data = await CreateEventService(request, id, file);
+
+    res.status(200).send({
+      message: "Event Berhasil dibuat",
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 async function UpdateEventController(
@@ -119,4 +123,118 @@ async function DeleteEventController(
   }
 }
 
-export {CreateEventController, GetEventListController, SearchEventController, UpdateEventController, DeleteEventController}
+async function CreateVoucherController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const eventId = parseInt(req.params.id);
+    const { id: userId } = req.user as IUserReqParam;
+    const request = req.body as CreateVoucher;
+
+    const result = await CreateVoucherService(userId, Number(eventId), request);
+
+    res.status(201).json({ message: "Voucher created", data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteVoucherController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const eventId = parseInt(req.params.id);
+    const { id: userId } = req.user as IUserReqParam;
+    const code = req.params.code; 
+
+    const deletedEvent = await deleteVoucherService(userId, Number(eventId), code);
+
+    res.status(200).json({
+      message: "Event deleted successfully",
+      data: deletedEvent,
+    });
+    res.json({ message: "Voucher deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getEventAttendeesController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+      const eventId = parseInt(req.params.id);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+
+      const result = await getEventAttendeesService(eventId, { skip, limit });
+      res.status(201).json({
+          message: 'Event attendee list ',
+          data: result
+      });
+  } catch (err) {
+      console.error(err);
+      next(err);
+  }
+}
+
+async function createReviewController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const eventId = parseInt(req.params.id);
+    const { id: userId } = req.user as IUserReqParam;
+    const request = req.body as ReviewParam; 
+
+    const createdReview = await createReviewService(userId, Number(eventId), request);
+
+    res.status(200).json({
+      message: "Review created successfully",
+      data: createdReview,
+    });
+    res.json({ message: "Review created successfully" });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getOrganizerProfileController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { id: userId } = req.user as IUserReqParam;
+
+    const profile = await getOrganizerProfileService(userId);
+    res.status(200).json({
+      message: "Organizer profile",
+      data: profile,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+export {
+  CreateEventController,
+  GetEventListController,
+  SearchEventController,
+  UpdateEventController,
+  DeleteEventController,
+  CreateVoucherController,
+  deleteVoucherController,
+  getEventAttendeesController,
+  createReviewController,
+  getOrganizerProfileController
+}

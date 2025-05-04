@@ -9,7 +9,7 @@ async function expireUserPointsTask() {
     // * kelima menandakan hari dalam minggu (0-7)
     // Run everyday at midnight
     cron.schedule('0 0 * * *', async () => {
-    console.log('Running daily point expiration job...');
+    console.log('Running cron: daily point expiration');
     await expireUserPoints();
   });
 }

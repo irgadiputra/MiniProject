@@ -3,12 +3,17 @@ import path from "path";
 import { PORT } from "./config";
 import AuthRouter from "./routers/auth.router";
 import EventRouter from "./routers/event.router";
+import TransactionRouter from "./routers/transaction.router";
+import AdminRouter from "./routers/admin.router";
 import { expireUserPointsTask } from "./utils/cron/user-point-task";
+import { AutoCancelTransactionsTask, AutoExpireTransactionsTask } from "./utils/cron/transaction-task";
 
 const port = PORT || 8080;
 const app: Application = express();
 
 expireUserPointsTask();
+AutoCancelTransactionsTask();
+AutoExpireTransactionsTask();
 
 app.use(express.json());
 app.get(
@@ -24,6 +29,8 @@ app.get(
 
 app.use("/auth", AuthRouter);
 app.use("/event", EventRouter);
+app.use("/transaction", TransactionRouter);
+app.use("/admin", AdminRouter);
 app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
 
 app.listen(port, () => {
