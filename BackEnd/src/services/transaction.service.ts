@@ -2,6 +2,11 @@ import prisma from "../lib/prisma";
 import { EventListQuery } from "../type/event.type";
 import { CreateTransaction } from "../type/transaction.type";
 
+import handlebars from "handlebars";
+import path from "path";
+import fs from "fs";
+import { Transporter } from "../utils/nodemailer";
+
 async function CreateTransactionService(
     userId: number,
     param: CreateTransaction
@@ -96,6 +101,7 @@ async function CreateTransactionService(
 }
 
 async function UpdateTransactionStatusService(
+    organizerId: number,
     transactionId: number,
     status: string,
 ) {
@@ -104,7 +110,7 @@ async function UpdateTransactionStatusService(
         throw new Error("Invalid status value.");
     }
 
-    const transaction = await prisma.transaction.findUnique({
+    let transaction = await prisma.transaction.findUnique({
         where: { id: transactionId },
         include: { user: true },
     });
@@ -117,78 +123,112 @@ async function UpdateTransactionStatusService(
         return { message: "No status change needed." };
     }
 
+    const event = await prisma.event.findUnique({
+        where: { id: transaction.event_id },
+    });
+
+    if (!event) throw new Error("Event not found");
+    if (event.organizer_id !== organizerId) throw new Error("Unauthorized");
+
     const userId = transaction.user_id;
     const usedPoint = transaction.point || 0;
     const rewardPoint = transaction.point_reward || 0;
 
     const actions: any[] = [];
 
-    // Update the transaction status
-    actions.push(
-        prisma.transaction.update({
-            where: { id: transactionId },
-            data: { status },
-        })
-    );
+    const user = await prisma.user.findUnique({ where: { id: userId } });
 
-    if (status === "DONE") {
-        // Only reward the user
-        if (rewardPoint > 0) {
-            actions.push(
-                prisma.user.update({
-                    where: { id: userId },
-                    data: {
-                        point: transaction.user.point + rewardPoint,
-                    },
-                }),
-                prisma.pointHistory.create({
-                    data: {
-                        userId,
-                        points: rewardPoint,
-                        description: `Reward from transaction #${transactionId}`,
-                        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-                    },
-                })
-            );
-        }
-    }
+    if (user?.is_verified) {
+        // Update the transaction status
+        actions.push(
+            prisma.transaction.update({
+                where: { id: transactionId },
+                data: { status },
+            })
+        );
 
-    if (status === "REJECTED") {
-        if (usedPoint > 0) {
-            actions.push(
-                prisma.user.update({
-                    where: { id: userId },
-                    data: {
-                        point: transaction.user.point + usedPoint,
-                    },
-                }),
-                prisma.pointHistory.create({
-                    data: {
-                        userId,
-                        points: usedPoint,
-                        description: `Rollback from failed transaction #${transactionId}`,
-                        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-                    },
-                })
-            );
-        }
-
-        // Restore event quota
-        if (transaction.quantity > 0 && transaction.event_id) {
-            actions.push(
-                prisma.event.update({
-                    where: { id: transaction.event_id },
-                    data: {
-                        quota: {
-                            increment: transaction.quantity,
+        if (status === "DONE") {
+            // Only reward the user
+            if (rewardPoint > 0) {
+                actions.push(
+                    prisma.user.update({
+                        where: { id: userId },
+                        data: {
+                            point: transaction.user.point + rewardPoint,
                         },
-                    },
-                })
-            );
+                    }),
+                    prisma.pointHistory.create({
+                        data: {
+                            userId,
+                            points: rewardPoint,
+                            description: `Reward from transaction #${transactionId}`,
+                            expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+                        },
+                    })
+                );
+            }
         }
-    }
 
-    await prisma.$transaction(actions);
+        if (status === "REJECTED") {
+            if (usedPoint > 0) {
+                actions.push(
+                    prisma.user.update({
+                        where: { id: userId },
+                        data: {
+                            point: transaction.user.point + usedPoint,
+                        },
+                    }),
+                    prisma.pointHistory.create({
+                        data: {
+                            userId,
+                            points: usedPoint,
+                            description: `Rollback from failed transaction #${transactionId}`,
+                            expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+                        },
+                    })
+                );
+            }
+
+            // Restore event quota
+            if (transaction.quantity > 0 && transaction.event_id) {
+                actions.push(
+                    prisma.event.update({
+                        where: { id: transaction.event_id },
+                        data: {
+                            quota: {
+                                increment: transaction.quantity,
+                            },
+                        },
+                    })
+                );
+            }
+        }
+
+        const templatePath = path.join(
+            __dirname,
+            "../utils/templates",
+            "transaction-template.hbs"
+        );
+        // Register 'eq' helper
+        handlebars.registerHelper("eq", function (a, b) {
+            return a === b;
+        });
+        const templateSource = fs.readFileSync(templatePath, "utf-8");
+        const compiledTemplate = handlebars.compile(templateSource);
+        transaction.status = status;
+        const html = compiledTemplate(transaction)
+
+        await Transporter.sendMail({
+            from: "LoketKita",
+            to: user?.email,
+            subject: "Payment Status",
+            html
+        });
+
+        await prisma.$transaction(actions);
+    } else {
+        throw new Error("User email is not verified.");
+    }
     return { message: `Transaction updated to ${status}` };
 }
 
@@ -318,7 +358,7 @@ function calculateDiscount(discountStr: string, price: number): number {
     }
 }
 
-export { 
+export {
     CreateTransactionService,
     UpdateTransactionStatusService,
     UploadPaymentProofService,

@@ -29,10 +29,11 @@ async function updateTransactionStatusController(
     next: NextFunction
 ) {
     try {
+        const { id: organizerId } = req.user as IUserReqParam;
         const transactionId = parseInt(req.params.id);
         const { status } = req.body;
 
-        const transaction = await UpdateTransactionStatusService(transactionId, status);
+        const transaction = await UpdateTransactionStatusService(organizerId, transactionId, status);
 
         res.status(201).json({
             message: "Transaction created successfully",

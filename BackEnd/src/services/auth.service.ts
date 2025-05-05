@@ -5,6 +5,12 @@ import { hash, genSaltSync, compare } from "bcrypt";
 import { SECRET_KEY } from "../config";
 import { LoginParam, RegisterParam, UpdateProfileParam } from "../type/user.type";
 
+import handlebars from "handlebars";
+import path from "path";
+import fs from "fs";
+import { Transporter } from "../utils/nodemailer";
+import { IUserReqParam } from "../custom";
+
 async function FindUserByEmail(email: string) {
   try {
     const user = await prisma.user.findFirst({
@@ -32,6 +38,11 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
     const referrerBonus = 10000;
     const now = new Date();
     const expiryDate = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 3 months from now
+    let newUser = {
+      id: -1,
+      first_name: param.first_name,
+      last_name: param.last_name,
+      email: param.email};
 
     if (isExist) throw new Error("Email sudah terdaftar");
 
@@ -62,7 +73,7 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
       const hashedPassword = await hash(param.password, salt);
       const referalCode = await generateUniqueReferralCode();
 
-      const newUser = await t.user.create({
+      newUser = await t.user.create({
         data: {
           first_name: param.first_name,
           last_name: param.last_name,
@@ -87,8 +98,35 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
           },
         });
       }
-      
     });
+
+    const templatePath = path.join(
+      __dirname,
+      "../utils/templates",
+      "register-template.hbs"
+    );
+
+    if (newUser.id > 0){
+      const payload = {
+        email: newUser.email,
+        first_name: newUser.first_name,
+        last_name: newUser.last_name,
+        id: newUser.id,
+      }
+      const token = sign(payload, String(SECRET_KEY), { expiresIn: "15m" });
+  
+      const templateSource = fs.readFileSync(templatePath, "utf-8");
+      const compiledTemplate = handlebars.compile(templateSource);
+      const html = compiledTemplate({ email: param.email, fe_url: `http://localhost:8080/auth/verify-email?token=${token}` })
+  
+      await Transporter.sendMail({
+        from: "LoketKita",
+        to: param.email,
+        subject: "Welcome",
+        html
+      });
+    }
+    
   } catch (err) {
     throw err;
   }
@@ -112,9 +150,9 @@ async function LoginService(param: LoginParam) {
       id: user.id,
     }
 
-    const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h"});
+    const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h" });
 
-    return {user: payload, token};
+    return { user: payload, token };
   } catch (err) {
     throw err;
   }
@@ -183,13 +221,34 @@ async function KeepLoginService(id: number) {
       id: user.id,
     }
 
-    const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h"});
+    const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h" });
 
-    return {user: payload, token};
+    return { user: payload, token };
   } catch (err) {
     throw err;
   }
 }
+
+async function VerifyEmailService(id: number) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: id },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+    await prisma.user.update({
+      where: { id: id },
+      data: { is_verified: true },
+    });
+
+    return "user verified";
+  } catch (err) {
+    throw err;
+  }
+}
+
 
 //corn task
 async function expireUserPoints() {
@@ -245,7 +304,7 @@ async function generateUniqueReferralCode(length = 8) {
       where: { referal_code: code },
     });
 
-    if (!existingUser) break; 
+    if (!existingUser) break;
   }
 
   return code;
@@ -253,4 +312,4 @@ async function generateUniqueReferralCode(length = 8) {
 
 
 
-export { RegisterService, LoginService, UpdateProfileService, KeepLoginService, expireUserPoints};
+export { RegisterService, LoginService, UpdateProfileService, KeepLoginService, expireUserPoints, VerifyEmailService };

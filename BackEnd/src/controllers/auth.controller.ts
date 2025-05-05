@@ -4,8 +4,10 @@ import {
   LoginService,
   UpdateProfileService,
   KeepLoginService,
+  VerifyEmailService,
 } from "../services/auth.service";
 import { IUserReqParam } from "../custom";
+import { verify } from "jsonwebtoken";
 
 
 async function RegisterController(
@@ -79,5 +81,20 @@ async function KeepLoginController(
   }
 }
 
+async function verifyEmailController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const token = req.query.token as string;
 
-export {RegisterController, LoginController, UpdateProfileController, KeepLoginController};
+  try {
+    const decoded = verify(token, process.env.SECRET_KEY as string) as { id: number };
+    const result = await VerifyEmailService(decoded.id);
+    res.send(`<h2>${result}</h2><p>You may now close this tab.</p>`);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export {RegisterController, LoginController, UpdateProfileController, KeepLoginController, verifyEmailController};
