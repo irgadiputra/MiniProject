@@ -1,3 +1,4 @@
+import { error } from "console";
 import prisma from "../lib/prisma";
 import { CreateCoupon } from "../type/admin.type";
 
@@ -5,6 +6,7 @@ async function createCouponService(
     userId: number,
     input: CreateCoupon
 ) {
+    isAdmin(userId);
     const existing = await prisma.coupon.findUnique({
         where: { code: input.code },
     });
@@ -27,6 +29,7 @@ async function deleteCouponService(
     userId: number,
     code: string
 ) {
+    isAdmin(userId);
     const coupon = await prisma.coupon.findUnique({
         where: { code },
     });
@@ -38,6 +41,15 @@ async function deleteCouponService(
     });
 
     return { message: "Coupon deleted successfully" };
+}
+
+async function isAdmin(
+    userId: number,
+) {
+    const user = await prisma.event.findUnique({
+        where: { id: userId },
+    });
+    if (user?.status != "admin") throw new Error("Unauthorized");
 }
 
 export { createCouponService, deleteCouponService }

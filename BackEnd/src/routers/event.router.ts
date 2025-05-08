@@ -8,13 +8,13 @@ const router = Router();
 
 router.post("/", VerifyToken, Multer("diskStorage", "EVT", "event").single("file"), ReqValidator(eventSchema), CreateEventController);
 router.patch("/:id", VerifyToken, Multer("diskStorage", "EVT", "event").single("file"), UpdateEventController);
-router.delete("/:id", VerifyToken, DeleteEventController)
-router.get("/", GetEventListController)
-router.get("/search", SearchEventController)
+router.delete("/:id", VerifyToken, DeleteEventController);
+router.get("/", GetEventListController);
+router.get("/search", SearchEventController);
 router.post("/:id/voucher", VerifyToken, CreateVoucherController);
 router.delete("/:id/voucher/:code", VerifyToken, deleteVoucherController);
-router.get("/:id/attendees", getEventAttendeesController);
-router.post("/:id/review", VerifyToken, createReviewController)
-router.get("/:id/review", VerifyToken, getOrganizerProfileController)
+router.get("/:id/attendees", VerifyToken, getEventAttendeesController);
+router.post("/:id/review", VerifyToken, createReviewController);
+router.get("/:id/review", VerifyToken, getOrganizerProfileController);
 
 export default router;

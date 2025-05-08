@@ -34,13 +34,7 @@ async function UpdateEventService(
   userId: number,
   file?: Express.Multer.File
 ) {
-  // Check if event exists and belongs to user
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-  });
-
-  if (!event) throw new Error("Event not found");
-  if (event.organizer_id !== userId) throw new Error("Unauthorized");
+  isEventOrganizer(userId,eventId);
 
   // Prepare update fields
   const updateData: any = {};
@@ -119,13 +113,7 @@ async function DeleteEventService(
   userId: number,
   eventId: number
 ) {
-  // Check if event exists and belongs to user
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-  });
-
-  if (!event) throw new Error("Event not found");
-  if (event.organizer_id !== userId) throw new Error("Unauthorized");
+  isEventOrganizer(userId,eventId);
 
   const deletedEvent = await prisma.event.delete({
     where: { id: eventId },
@@ -139,12 +127,7 @@ async function CreateVoucherService(
   eventId: number,
   payload: CreateVoucher
 ) {
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-  });
-
-  if (!event) throw new Error("Event not found");
-  if (event.organizer_id !== userId) throw new Error("Unauthorized");
+  isEventOrganizer(userId,eventId);
 
   const voucher = await prisma.voucher.create({
     data: {
@@ -164,12 +147,7 @@ async function deleteVoucherService(
   eventId: number,
   code: string
 ) {
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-  });
-
-  if (!event) throw new Error("Event not found");
-  if (event.organizer_id !== userId) throw new Error("Unauthorized");
+  isEventOrganizer(userId,eventId);
   
   const voucher = await prisma.voucher.findFirst({
     where: { event_id: eventId, code },
@@ -186,9 +164,11 @@ async function deleteVoucherService(
 
 
 async function getEventAttendeesService(
+  userId: number,
   eventId: number,
   { skip, limit }: EventListQuery
 ) {
+  isEventOrganizer(userId,eventId);
 
   const [attendees, totalCount] = await Promise.all([
       prisma.transaction.findMany({
@@ -298,6 +278,17 @@ async function getOrganizerProfileService(userId: number) {
   };
 }
 
+async function isEventOrganizer(
+  userId: number,
+  eventId: number, 
+) {
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+  });
+
+  if (!event) throw new Error("Event not found");
+  if (event.organizer_id !== userId) throw new Error("Unauthorized");
+}
 
 export { 
   CreateEventService,
@@ -309,5 +300,6 @@ export {
   deleteVoucherService,
   getEventAttendeesService,
   createReviewService,
-  getOrganizerProfileService
+  getOrganizerProfileService,
+  isEventOrganizer
 }
