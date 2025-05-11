@@ -5,4 +5,5 @@ export const {
     SECRET_KEY,
     NODEMAILER_USER,
     NODEMAILER_PASS,
+    FE_URL,
 } = process.env;

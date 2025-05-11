@@ -2,7 +2,7 @@ import { User } from "@prisma/client";
 import { sign } from "jsonwebtoken";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
-import { SECRET_KEY } from "../config";
+import { FE_URL, SECRET_KEY } from "../config";
 import { LoginParam, RegisterParam, UpdateProfileParam } from "../type/user.type";
 
 import handlebars from "handlebars";
@@ -117,7 +117,7 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
   
       const templateSource = fs.readFileSync(templatePath, "utf-8");
       const compiledTemplate = handlebars.compile(templateSource);
-      const html = compiledTemplate({ email: param.email, fe_url: `http://localhost:8080/auth/verify-email?token=${token}` })
+      const html = compiledTemplate({ email: param.email, fe_url: `${FE_URL}/auth/verify-email?token=${token}` })
   
       await Transporter.sendMail({
         from: "LoketKita",
