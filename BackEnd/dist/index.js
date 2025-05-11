@@ -10,6 +10,7 @@ const auth_router_1 = __importDefault(require("./routers/auth.router"));
 const event_router_1 = __importDefault(require("./routers/event.router"));
 const transaction_router_1 = __importDefault(require("./routers/transaction.router"));
 const admin_router_1 = __importDefault(require("./routers/admin.router"));
+const organizer_router_1 = __importDefault(require("./routers/organizer.router"));
 const user_point_task_1 = require("./utils/cron/user-point-task");
 const transaction_task_1 = require("./utils/cron/transaction-task");
 const port = config_1.PORT || 8080;
@@ -28,7 +29,8 @@ app.use("/auth", auth_router_1.default);
 app.use("/event", event_router_1.default);
 app.use("/transaction", transaction_router_1.default);
 app.use("/admin", admin_router_1.default);
-app.use("/avt", express_1.default.static(path_1.default.join(__dirname, "./public/avatar")));
+app.use("/organizer", organizer_router_1.default);
+app.use("/avt", express_1.default.static(path_1.default.join(__dirname, "/public/avatar")));
 app.listen(port, () => {
     console.log(`Server started on port ${port}`);
 });

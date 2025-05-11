@@ -54,9 +54,9 @@ async function UpdateProfileController(
     const { id } = req.user as IUserReqParam;
     const data = await UpdateProfileService(file, req.body, id);
 
-    res.status(200).cookie("access_token", data.email).send({
+    res.status(200).cookie("access_token", data.token).send({
       message: "update profile berhasil",
-      user: data.first_name,
+      user: data.user.first_name,
     });
   } catch (err) {
     next(err);

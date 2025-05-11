@@ -31,10 +31,8 @@ async function CreateEventService(
 async function UpdateEventService(
   eventId: number,
   param: UpdateEventParam,
-  userId: number,
   file?: Express.Multer.File
 ) {
-  isEventOrganizer(userId,eventId);
 
   // Prepare update fields
   const updateData: any = {};
@@ -110,10 +108,8 @@ async function SearchEventService({ name, location, status, page, limit }: Searc
 }
 
 async function DeleteEventService(
-  userId: number,
   eventId: number
 ) {
-  isEventOrganizer(userId,eventId);
 
   const deletedEvent = await prisma.event.delete({
     where: { id: eventId },
@@ -123,11 +119,9 @@ async function DeleteEventService(
 }
 
 async function CreateVoucherService(
-  userId: number,
   eventId: number,
   payload: CreateVoucher
 ) {
-  isEventOrganizer(userId,eventId);
 
   const voucher = await prisma.voucher.create({
     data: {
@@ -143,11 +137,9 @@ async function CreateVoucherService(
 }
 
 async function deleteVoucherService(
-  userId: number,
   eventId: number,
   code: string
 ) {
-  isEventOrganizer(userId,eventId);
   
   const voucher = await prisma.voucher.findFirst({
     where: { event_id: eventId, code },
@@ -164,11 +156,9 @@ async function deleteVoucherService(
 
 
 async function getEventAttendeesService(
-  userId: number,
   eventId: number,
   { skip, limit }: EventListQuery
 ) {
-  isEventOrganizer(userId,eventId);
 
   const [attendees, totalCount] = await Promise.all([
       prisma.transaction.findMany({
@@ -245,51 +235,6 @@ async function createReviewService(
   });
 }
 
-async function getOrganizerProfileService(userId: number) {
-  const events = await prisma.event.findMany({
-      where: { organizer_id: userId },
-      select: {
-          id: true,
-          name: true,
-          review: {
-              select: {
-                  rating: true,
-                  comment: true,
-                  user: { select: { first_name: true, last_name: true } },
-                  created_at: true,
-              },
-          },
-      },
-  });
-
-  const allReviews = events.flatMap(e => e.review);
-
-  const averageRating =
-      allReviews.length > 0
-          ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
-          : null;
-
-  return {
-      organizerId: userId,
-      totalEvents: events.length,
-      totalReviews: allReviews.length,
-      averageRating,
-      reviews: allReviews,
-  };
-}
-
-async function isEventOrganizer(
-  userId: number,
-  eventId: number, 
-) {
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-  });
-
-  if (!event) throw new Error("Event not found");
-  if (event.organizer_id !== userId) throw new Error("Unauthorized");
-}
-
 export { 
   CreateEventService,
   GetEventListService,
@@ -299,7 +244,5 @@ export {
   CreateVoucherService,
   deleteVoucherService,
   getEventAttendeesService,
-  createReviewService,
-  getOrganizerProfileService,
-  isEventOrganizer
+  createReviewService
 }

@@ -199,7 +199,15 @@ async function UpdateProfileService(file: Express.Multer.File, param: UpdateProf
       data: updateData,
     });
 
-    return updatedUser;
+    const payload = {
+      email: updatedUser.email,
+      first_name: updatedUser.first_name,
+      last_name: updatedUser.last_name,
+      id: updatedUser.id,
+    }
+    const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h" });
+
+    return { user: payload, token };
   } catch (err) {
     throw err;
   }

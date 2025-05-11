@@ -15,9 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCouponService = createCouponService;
 exports.deleteCouponService = deleteCouponService;
 const prisma_1 = __importDefault(require("../lib/prisma"));
-function createCouponService(userId, input) {
+function createCouponService(input) {
     return __awaiter(this, void 0, void 0, function* () {
-        isAdmin(userId);
         const existing = yield prisma_1.default.coupon.findUnique({
             where: { code: input.code },
         });
@@ -34,9 +33,8 @@ function createCouponService(userId, input) {
         return coupon;
     });
 }
-function deleteCouponService(userId, code) {
+function deleteCouponService(code) {
     return __awaiter(this, void 0, void 0, function* () {
-        isAdmin(userId);
         const coupon = yield prisma_1.default.coupon.findUnique({
             where: { code },
         });
@@ -46,14 +44,5 @@ function deleteCouponService(userId, code) {
             where: { code },
         });
         return { message: "Coupon deleted successfully" };
-    });
-}
-function isAdmin(userId) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const user = yield prisma_1.default.event.findUnique({
-            where: { id: userId },
-        });
-        if ((user === null || user === void 0 ? void 0 : user.status) != "admin")
-            throw new Error("Unauthorized");
     });
 }

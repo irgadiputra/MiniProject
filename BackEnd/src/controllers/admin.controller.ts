@@ -10,8 +10,7 @@ async function CreateCouponController(
 ) {
     try {
         const request = req.body as CreateCoupon;
-        const { id: userId } = req.user as IUserReqParam;
-        const coupon = await createCouponService(userId, request);
+        const coupon = await createCouponService(request);
 
         res.status(201).json({ message: "Coupon created", data: coupon });
     } catch (err) {
@@ -25,8 +24,7 @@ async function deleteCouponController(
     next: NextFunction
 ) {
     try {
-        const { id: userId } = req.user as IUserReqParam;
-        const result = await deleteCouponService(userId, req.params.code);
+        const result = await deleteCouponService(req.params.code);
         res.json(result);
     } catch (err) {
         next(err);

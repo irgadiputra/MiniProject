@@ -122,7 +122,7 @@ function RegisterService(param) {
                 const token = (0, jsonwebtoken_1.sign)(payload, String(config_1.SECRET_KEY), { expiresIn: "15m" });
                 const templateSource = fs_1.default.readFileSync(templatePath, "utf-8");
                 const compiledTemplate = handlebars_1.default.compile(templateSource);
-                const html = compiledTemplate({ email: param.email, fe_url: `http://localhost:8080/auth/verify-email?token=${token}` });
+                const html = compiledTemplate({ email: param.email, fe_url: `${config_1.FE_URL}/auth/verify-email?token=${token}` });
                 yield nodemailer_1.Transporter.sendMail({
                     from: "LoketKita",
                     to: param.email,
@@ -199,7 +199,14 @@ function UpdateProfileService(file, param, id) {
                 where: { id: id },
                 data: updateData,
             });
-            return updatedUser;
+            const payload = {
+                email: updatedUser.email,
+                first_name: updatedUser.first_name,
+                last_name: updatedUser.last_name,
+                id: updatedUser.id,
+            };
+            const token = (0, jsonwebtoken_1.sign)(payload, String(config_1.SECRET_KEY), { expiresIn: "1h" });
+            return { user: payload, token };
         }
         catch (err) {
             throw err;

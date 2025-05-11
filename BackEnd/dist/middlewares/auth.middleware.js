@@ -8,11 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VerifyToken = VerifyToken;
 exports.EOGuard = EOGuard;
+exports.isEventOrganizer = isEventOrganizer;
+exports.isAdmin = isAdmin;
 const jsonwebtoken_1 = require("jsonwebtoken");
 const config_1 = require("../config");
+const prisma_1 = __importDefault(require("../lib/prisma"));
 function VerifyToken(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a;
@@ -42,5 +48,28 @@ function EOGuard(req, res, next) {
         catch (err) {
             next(err);
         }
+    });
+}
+function isEventOrganizer(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const eventId = parseInt(req.params.id);
+        const { id: userId } = req.user;
+        const event = yield prisma_1.default.event.findUnique({
+            where: { id: eventId },
+        });
+        if (!event)
+            throw new Error("Event not found");
+        if (event.organizer_id !== userId)
+            throw new Error("Unauthorized");
+    });
+}
+function isAdmin(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { id: userId } = req.user;
+        const user = yield prisma_1.default.event.findUnique({
+            where: { id: userId },
+        });
+        if ((user === null || user === void 0 ? void 0 : user.status) != "admin")
+            throw new Error("Unauthorized");
     });
 }

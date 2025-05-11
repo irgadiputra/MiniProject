@@ -18,7 +18,6 @@ exports.CreateVoucherController = CreateVoucherController;
 exports.deleteVoucherController = deleteVoucherController;
 exports.getEventAttendeesController = getEventAttendeesController;
 exports.createReviewController = createReviewController;
-exports.getOrganizerProfileController = getOrganizerProfileController;
 const event_service_1 = require("../services/event.service");
 function CreateEventController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -40,11 +39,10 @@ function CreateEventController(req, res, next) {
 function UpdateEventController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { id: userId } = req.user;
             const eventId = parseInt(req.params.id);
             const file = req.file;
             const request = req.body;
-            const data = yield (0, event_service_1.UpdateEventService)(eventId, request, userId, file);
+            const data = yield (0, event_service_1.UpdateEventService)(eventId, request, file);
             res.status(200).json({
                 message: "Event updated successfully",
                 data,
@@ -97,9 +95,8 @@ function SearchEventController(req, res, next) {
 function DeleteEventController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { id: userId } = req.user;
             const eventId = parseInt(req.params.id);
-            const deletedEvent = yield (0, event_service_1.DeleteEventService)(userId, eventId);
+            const deletedEvent = yield (0, event_service_1.DeleteEventService)(eventId);
             res.status(200).json({
                 message: "Event deleted successfully",
                 data: deletedEvent,
@@ -114,9 +111,8 @@ function CreateVoucherController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const eventId = parseInt(req.params.id);
-            const { id: userId } = req.user;
             const request = req.body;
-            const result = yield (0, event_service_1.CreateVoucherService)(userId, Number(eventId), request);
+            const result = yield (0, event_service_1.CreateVoucherService)(Number(eventId), request);
             res.status(201).json({ message: "Voucher created", data: result });
         }
         catch (err) {
@@ -128,9 +124,8 @@ function deleteVoucherController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const eventId = parseInt(req.params.id);
-            const { id: userId } = req.user;
             const code = req.params.code;
-            const deletedEvent = yield (0, event_service_1.deleteVoucherService)(userId, Number(eventId), code);
+            const deletedEvent = yield (0, event_service_1.deleteVoucherService)(Number(eventId), code);
             res.status(200).json({
                 message: "Event deleted successfully",
                 data: deletedEvent,
@@ -145,12 +140,11 @@ function deleteVoucherController(req, res, next) {
 function getEventAttendeesController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { id: userId } = req.user;
             const eventId = parseInt(req.params.id);
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
             const skip = (page - 1) * limit;
-            const result = yield (0, event_service_1.getEventAttendeesService)(userId, eventId, { skip, limit });
+            const result = yield (0, event_service_1.getEventAttendeesService)(eventId, { skip, limit });
             res.status(201).json({
                 message: 'Event attendee list ',
                 data: result
@@ -174,21 +168,6 @@ function createReviewController(req, res, next) {
                 data: createdReview,
             });
             res.json({ message: "Review created successfully" });
-        }
-        catch (err) {
-            next(err);
-        }
-    });
-}
-function getOrganizerProfileController(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { id: userId } = req.user;
-            const profile = yield (0, event_service_1.getOrganizerProfileService)(userId);
-            res.status(200).json({
-                message: "Organizer profile",
-                data: profile,
-            });
         }
         catch (err) {
             next(err);

@@ -8,8 +8,7 @@ import {
   CreateVoucherService,
   deleteVoucherService,
   getEventAttendeesService,
-  createReviewService,
-  getOrganizerProfileService,
+  createReviewService
 } from "../services/event.service";
 import { IUserReqParam } from "../custom";
 import { CreateVoucher, EventParam, ReviewParam, UpdateEventParam } from "../type/event.type";
@@ -40,12 +39,11 @@ async function UpdateEventController(
   next: NextFunction
 ) {
   try {
-    const { id: userId } = req.user as IUserReqParam;
     const eventId = parseInt(req.params.id);
     const file = req.file as Express.Multer.File;
     const request = req.body as UpdateEventParam;
 
-    const data = await UpdateEventService(eventId, request, userId, file);
+    const data = await UpdateEventService(eventId, request, file);
 
     res.status(200).json({
       message: "Event updated successfully",
@@ -109,10 +107,9 @@ async function DeleteEventController(
   next: NextFunction
 ) {
   try {
-    const { id: userId } = req.user as IUserReqParam;
     const eventId = parseInt(req.params.id);
 
-    const deletedEvent = await DeleteEventService(userId, eventId);
+    const deletedEvent = await DeleteEventService(eventId);
 
     res.status(200).json({
       message: "Event deleted successfully",
@@ -130,10 +127,9 @@ async function CreateVoucherController(
 ) {
   try {
     const eventId = parseInt(req.params.id);
-    const { id: userId } = req.user as IUserReqParam;
     const request = req.body as CreateVoucher;
 
-    const result = await CreateVoucherService(userId, Number(eventId), request);
+    const result = await CreateVoucherService(Number(eventId), request);
 
     res.status(201).json({ message: "Voucher created", data: result });
   } catch (err) {
@@ -148,10 +144,9 @@ async function deleteVoucherController(
 ) {
   try {
     const eventId = parseInt(req.params.id);
-    const { id: userId } = req.user as IUserReqParam;
     const code = req.params.code; 
 
-    const deletedEvent = await deleteVoucherService(userId, Number(eventId), code);
+    const deletedEvent = await deleteVoucherService(Number(eventId), code);
 
     res.status(200).json({
       message: "Event deleted successfully",
@@ -169,13 +164,12 @@ async function getEventAttendeesController(
   next: NextFunction
 ) {
   try {
-      const { id: userId } = req.user as IUserReqParam;
       const eventId = parseInt(req.params.id);
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      const result = await getEventAttendeesService(userId, eventId, { skip, limit });
+      const result = await getEventAttendeesService(eventId, { skip, limit });
       res.status(201).json({
           message: 'Event attendee list ',
           data: result
@@ -208,23 +202,6 @@ async function createReviewController(
   }
 }
 
-async function getOrganizerProfileController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const { id: userId } = req.user as IUserReqParam;
-
-    const profile = await getOrganizerProfileService(userId);
-    res.status(200).json({
-      message: "Organizer profile",
-      data: profile,
-    });
-  } catch (err) {
-    next(err);
-  }
-}
 
 
 export {
@@ -236,6 +213,5 @@ export {
   CreateVoucherController,
   deleteVoucherController,
   getEventAttendeesController,
-  createReviewController,
-  getOrganizerProfileController
+  createReviewController
 }
