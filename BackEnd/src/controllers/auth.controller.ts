@@ -5,6 +5,7 @@ import {
   UpdateProfileService,
   KeepLoginService,
   VerifyEmailService,
+  SendVerifyEmailService,
 } from "../services/auth.service";
 import { IUserReqParam } from "../custom";
 import { verify } from "jsonwebtoken";
@@ -97,4 +98,20 @@ async function verifyEmailController(
   }
 }
 
-export {RegisterController, LoginController, UpdateProfileController, KeepLoginController, verifyEmailController};
+async function SendverifyEmailController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { id } = req.user as IUserReqParam;
+  try {
+    const data = await SendVerifyEmailService(id);
+    res.status(200).send({
+      message: "Email sent",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export { RegisterController, LoginController, UpdateProfileController, KeepLoginController, verifyEmailController, SendverifyEmailController };

@@ -237,6 +237,44 @@ async function KeepLoginService(id: number) {
   }
 }
 
+async function SendVerifyEmailService(id: number) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: id },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+    const templatePath = path.join(
+      __dirname,
+      "../utils/templates",
+      "register-template.hbs"
+    );
+
+      const payload = {
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        id: user.id,
+      }
+      const token = sign(payload, String(SECRET_KEY), { expiresIn: "15m" });
+  
+      const templateSource = fs.readFileSync(templatePath, "utf-8");
+      const compiledTemplate = handlebars.compile(templateSource);
+      const html = compiledTemplate({ email: user.email, fe_url: `${FE_URL}/auth/verify-email?token=${token}` })
+  
+      await Transporter.sendMail({
+        from: "LoketKita",
+        to: user.email,
+        subject: "Welcome",
+        html
+      });
+  } catch (err) {
+    throw err;
+  }
+}
+
 async function VerifyEmailService(id: number) {
   try {
     const user = await prisma.user.findUnique({
@@ -319,4 +357,4 @@ async function generateUniqueReferralCode(length = 8) {
 
 
 
-export { RegisterService, LoginService, UpdateProfileService, KeepLoginService, expireUserPoints, VerifyEmailService };
+export { RegisterService, LoginService, UpdateProfileService, KeepLoginService, expireUserPoints, VerifyEmailService, SendVerifyEmailService };

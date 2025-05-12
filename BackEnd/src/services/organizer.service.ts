@@ -1,41 +1,52 @@
 import prisma from "../lib/prisma";
 
 async function getOrganizerStats(
-    organizerId: number,
-    range: 'day' | 'month' | 'year'
+  organizerId: number,
+  range: 'day' | 'month' | 'year'
 ) {
-    const allowedTruncs = ['day', 'month', 'year'];
-    if (!allowedTruncs.includes(range)) {
-        throw new Error("Invalid dateTrunc value");
-    }
+  const allowedTruncs = ['day', 'month', 'year'];
+  if (!allowedTruncs.includes(range)) {
+    throw new Error("Invalid range value");
+  }
 
-    const rawResult = await prisma.$queryRawUnsafe(`
-        SELECT
-          DATE_TRUNC('${range}', t."created_at") AS period,
-          SUM(t."total_price") AS revenue,
-          SUM(t."quantity") AS tickets_sold,
-          COUNT(*) AS transactions
-        FROM "Transaction" t
-        JOIN "Event" e ON e."id" = t."event_id"
-        WHERE e."organizer_id" = $1 AND t."status" = 'DONE'
-        GROUP BY period
-        ORDER BY period ASC;
-      `, organizerId) as {
-        period: Date
-        revenue: bigint
-        tickets_sold: bigint
-        transactions: bigint
-      }[];
+  // Aggregated statistics
+  const stats: any[] = await prisma.$queryRawUnsafe(`
+    SELECT
+      DATE_TRUNC('${range}', t."created_at") AS period,
+      SUM(t."total_price") AS revenue,
+      SUM(t."quantity") AS tickets_sold,
+      COUNT(*) AS transactions
+    FROM "Transaction" t
+    JOIN "Event" e ON e."id" = t."event_id"
+    WHERE e."organizer_id" = $1 AND t."status" = 'DONE'
+    GROUP BY period
+    ORDER BY period ASC;
+  `, organizerId);
 
-    // Fix BigInt serialization issue
-    const result = rawResult.map((row: any) => ({
-        period: row.period,
-        revenue: Number(row.revenue),
-        tickets_sold: Number(row.tickets_sold),
-        transactions: Number(row.transactions),
-    }));
+  // Raw transaction data
+  const raw: any[] = await prisma.$queryRawUnsafe(`
+    SELECT
+      t."id" AS transaction_id,
+      DATE_TRUNC('${range}', t."created_at") AS period,
+      t."confirmed_at" AS date,
+      t."total_price" AS revenue,
+      t."quantity" AS tickets_sold,
+      t."created_at" AS created_at
+    FROM "Transaction" t
+    JOIN "Event" e ON e."id" = t."event_id"
+    WHERE e."organizer_id" = $1 AND t."status" = 'DONE'
+    ORDER BY t."created_at" ASC;
+  `, organizerId);
 
-    return result;
+  // Convert BigInt values to numbers (if needed)
+  const parseBigInts = (data: any[]) => JSON.parse(JSON.stringify(data, (_, v) =>
+    typeof v === 'bigint' ? Number(v) : v
+  ));
+
+  return {
+    stats: parseBigInts(stats),
+    raw: parseBigInts(raw)
+  };
 }
 
 

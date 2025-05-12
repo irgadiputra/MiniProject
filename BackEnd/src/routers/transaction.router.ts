@@ -8,6 +8,6 @@ const router = Router();
 
 router.post("/", VerifyToken, ReqValidator(CreateTransactionSchema) , CreateTransactionController);
 router.patch("/:id/status", VerifyToken, updateTransactionStatusController);
-router.patch("/:id", VerifyToken, Multer("diskStorage", "AVT", "avatar").single("file"), UploadPaymentProofController);
+router.patch("/:id", VerifyToken, Multer("diskStorage", "AVT", "transaction").single("file"), UploadPaymentProofController);
 
 export default router;

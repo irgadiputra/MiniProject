@@ -143,7 +143,7 @@ async function UpdateTransactionStatusService(
         actions.push(
             prisma.transaction.update({
                 where: { id: transactionId },
-                data: { status },
+                data: { status, confirmed_at: new Date(Date.now())},
             })
         );
 
