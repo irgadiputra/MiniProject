@@ -9,7 +9,8 @@ import { EventSchema } from './schema';
 import IEvent from './type';
 import axios from 'axios';
 import { apiUrl } from '../../config';
-import { getCookie } from 'cookies-next'; 
+import { getCookie } from 'cookies-next';
+import { AiOutlineClose } from 'react-icons/ai';
 
 export default function CreateEventForm() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function CreateEventForm() {
     { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
   ) => {
     try {
-      const token = getCookie('access_token'); 
+      const token = getCookie('access_token');
       if (!token) {
         alert('Authorization token not found');
         return;
@@ -91,9 +92,7 @@ export default function CreateEventForm() {
   if (isAuthorized !== true) return null;
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white shadow rounded">
-      <h2 className="text-2xl font-bold mb-6">Create New Event</h2>
-
+    <div className="flex items-center justify-center min-h-screen bg-slate-100 px-4">
       <Formik<IEvent>
         initialValues={{
           name: '',
@@ -109,64 +108,74 @@ export default function CreateEventForm() {
         onSubmit={handleSubmit}
       >
         {({ isSubmitting }) => (
-          <Form className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <Field name="name" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
-              <ErrorMessage name="name" component="div" className="text-red-500 text-sm mt-1" />
-            </div>
+          <Form className="flex flex-col gap-5 w-full max-w-xl bg-white p-10 rounded-2xl shadow-md relative">
+            {/* Close Button */}
+            <button
+              type="button"
+              className="absolute top-4 right-4 text-xl text-slate-400 hover:text-blue-500 transition"
+              onClick={() => router.push('/')}
+            >
+              <AiOutlineClose />
+            </button>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-              <Field name="location" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
-              <ErrorMessage name="location" component="div" className="text-red-500 text-sm mt-1" />
-            </div>
+            <h2 className="text-2xl font-semibold text-slate-800 mb-2">Create New Event</h2>
 
+            {[
+              { label: 'Name', name: 'name', type: 'text' },
+              { label: 'Location', name: 'location', type: 'text' },
+              { label: 'Quota', name: 'quota', type: 'number' },
+              { label: 'Price', name: 'price', type: 'number' },
+            ].map(({ label, name, type }) => (
+              <div key={name} className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700 mb-1">{label}</label>
+                <Field
+                  name={name}
+                  type={type}
+                  className="border border-slate-300 focus:border-blue-500 focus:ring focus:ring-blue-200 rounded-md p-2 h-10 bg-white text-slate-800 outline-none"
+                />
+                <ErrorMessage name={name} component="div" className="text-red-600 text-xs mt-1" />
+              </div>
+            ))}
+
+            {/* Dates */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                <Field type="date" name="start_date" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700 mb-1">Start Date</label>
+                <Field type="date" name="start_date" className="border border-slate-300 rounded-md p-2 h-10" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                <Field type="date" name="end_date" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700 mb-1">End Date</label>
+                <Field type="date" name="end_date" className="border border-slate-300 rounded-md p-2 h-10" />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quota</label>
-              <Field type="number" name="quota" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
+            {/* Description */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700 mb-1">Description</label>
+              <Field as="textarea" name="description" rows={3} className="border border-slate-300 rounded-md p-2" />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <Field as="textarea" name="description" rows={4} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
-              <Field type="number" name="price" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
-            </div>
-
-            {/* Radio buttons for status */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            {/* Status Radio */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700 mb-1">Status</label>
               <div className="flex gap-4">
-                <label className="flex items-center">
-                  <Field type="radio" name="status" value="Gratis" className="mr-2" />
-                  Gratis
-                </label>
-                <label className="flex items-center">
-                  <Field type="radio" name="status" value="Berbayar" className="mr-2" />
-                  Berbayar
-                </label>
+                {['Gratis', 'Berbayar'].map((status) => (
+                  <label key={status} className="flex items-center">
+                    <Field type="radio" name="status" value={status} className="mr-2" />
+                    {status}
+                  </label>
+                ))}
               </div>
+              <ErrorMessage name="status" component="div" className="text-red-600 text-xs mt-1" />
             </div>
 
-            {/* Image upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Upload Image</label>
-              <label htmlFor="file-upload" className="cursor-pointer w-fit text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded py-2 px-4 flex items-center justify-center">
+            {/* Image Upload */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700 mb-1">Upload Image</label>
+              <label
+                htmlFor="file-upload"
+                className="cursor-pointer w-fit text-sm text-slate-900 bg-slate-50 border border-slate-300 rounded py-2 px-4"
+              >
                 Choose Image
               </label>
               <input
@@ -184,9 +193,9 @@ export default function CreateEventForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition disabled:opacity-50"
+              className="mt-2 p-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition disabled:opacity-50"
             >
-              Create Event
+              {isSubmitting ? 'Creating...' : 'Create Event'}
             </button>
           </Form>
         )}

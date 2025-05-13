@@ -96,7 +96,6 @@ export default function ProfileForm() {
     }
   };
 
-  // Actual resend logic
   const proceedResendVerification = async () => {
     try {
       setLoading(true);
