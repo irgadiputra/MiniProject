@@ -14,7 +14,7 @@ async function CreateTransactionController(
 
         const transaction = await CreateTransactionService(userId, request);
 
-        res.status(201).json({
+        res.status(200).json({
             message: "Transaction created successfully",
             data: transaction
         });
@@ -35,7 +35,7 @@ async function updateTransactionStatusController(
 
         const transaction = await UpdateTransactionStatusService(organizerId, transactionId, status);
 
-        res.status(201).json({
+        res.status(200).json({
             message: "Transaction created successfully",
             data: transaction
         });
@@ -54,7 +54,7 @@ async function UploadPaymentProofController(
         const transactionId = parseInt(req.params.id);
         const data = await UploadPaymentProofService(transactionId, file);
 
-        res.status(201).json({
+        res.status(200).json({
             message: "Payment proof uploaded successfully",
             data: data
         });

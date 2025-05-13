@@ -17,11 +17,10 @@ async function RegisterController(
   next: NextFunction
 ) {
   try {
-    const data = await RegisterService(req.body);
+    await RegisterService(req.body);
 
     res.status(200).send({
       message: "Register Berhasil",
-      data,
     });
   } catch (err) {
     next(err);
@@ -105,7 +104,7 @@ async function SendverifyEmailController(
 ) {
   const { id } = req.user as IUserReqParam;
   try {
-    const data = await SendVerifyEmailService(id);
+    await SendVerifyEmailService(id);
     res.status(200).send({
       message: "Email sent",
     });

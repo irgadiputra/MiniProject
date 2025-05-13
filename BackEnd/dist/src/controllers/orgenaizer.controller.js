@@ -9,26 +9,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateCouponController = CreateCouponController;
-exports.deleteCouponController = deleteCouponController;
-const admin_service_1 = require("../services/admin.service");
-function CreateCouponController(req, res, next) {
+exports.getStatsController = getStatsController;
+exports.getOrganizerProfileController = getOrganizerProfileController;
+const organizer_service_1 = require("../services/organizer.service");
+function getStatsController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
+        const { id: organizerId } = req.user;
+        const range = req.query.range;
         try {
-            const request = req.body;
-            const coupon = yield (0, admin_service_1.createCouponService)(request);
-            res.status(200).json({ message: "Coupon created", data: coupon });
+            const stats = yield (0, organizer_service_1.getOrganizerStats)(organizerId, range);
+            res.status(200).send({ stats });
         }
         catch (err) {
             next(err);
         }
     });
 }
-function deleteCouponController(req, res, next) {
+function getOrganizerProfileController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const result = yield (0, admin_service_1.deleteCouponService)(req.params.code);
-            res.json(result);
+            const { id: userId } = req.user;
+            const profile = yield (0, organizer_service_1.getOrganizerProfileService)(userId);
+            res.status(200).json({
+                message: "Organizer profile",
+                data: profile,
+            });
         }
         catch (err) {
             next(err);

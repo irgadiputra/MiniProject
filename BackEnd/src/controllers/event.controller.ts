@@ -131,7 +131,7 @@ async function CreateVoucherController(
 
     const result = await CreateVoucherService(Number(eventId), request);
 
-    res.status(201).json({ message: "Voucher created", data: result });
+    res.status(200).json({ message: "Voucher created", data: result });
   } catch (err) {
     next(err);
   }
@@ -170,7 +170,7 @@ async function getEventAttendeesController(
       const skip = (page - 1) * limit;
 
       const result = await getEventAttendeesService(eventId, { skip, limit });
-      res.status(201).json({
+      res.status(200).json({
           message: 'Event attendee list ',
           data: result
       });

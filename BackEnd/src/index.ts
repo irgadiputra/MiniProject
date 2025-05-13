@@ -38,3 +38,5 @@ app.use("/avt", express.static(path.join(__dirname, "/public/avatar")));
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
+
+export {app};
