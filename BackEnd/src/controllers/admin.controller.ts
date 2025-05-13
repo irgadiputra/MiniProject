@@ -12,7 +12,7 @@ async function CreateCouponController(
         const request = req.body as CreateCoupon;
         const coupon = await createCouponService(request);
 
-        res.status(201).json({ message: "Coupon created", data: coupon });
+        res.status(200).json({ message: "Coupon created", data: coupon });
     } catch (err) {
         next(err);
     }

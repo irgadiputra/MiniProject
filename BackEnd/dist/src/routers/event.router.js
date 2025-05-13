@@ -1,0 +1,22 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const event_controller_1 = require("../controllers/event.controller");
+const validator_middleware_1 = __importDefault(require("../middlewares/validator.middleware"));
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const event_schema_1 = require("../schemas/event.schema");
+const multer_1 = require("../utils/multer");
+const router = (0, express_1.Router)();
+router.post("/", auth_middleware_1.VerifyToken, (0, multer_1.Multer)("diskStorage", "EVT", "event").single("file"), (0, validator_middleware_1.default)(event_schema_1.eventSchema), event_controller_1.CreateEventController);
+router.patch("/:id", auth_middleware_1.VerifyToken, auth_middleware_1.isEventOrganizer, (0, multer_1.Multer)("diskStorage", "EVT", "event").single("file"), event_controller_1.UpdateEventController);
+router.delete("/:id", auth_middleware_1.VerifyToken, auth_middleware_1.isEventOrganizer, event_controller_1.DeleteEventController);
+router.get("/", event_controller_1.GetEventListController, auth_middleware_1.isEventOrganizer);
+router.get("/search", event_controller_1.SearchEventController);
+router.post("/:id/voucher", auth_middleware_1.VerifyToken, auth_middleware_1.isEventOrganizer, event_controller_1.CreateVoucherController);
+router.delete("/:id/voucher/:code", auth_middleware_1.VerifyToken, auth_middleware_1.isEventOrganizer, event_controller_1.deleteVoucherController);
+router.get("/:id/attendees", auth_middleware_1.VerifyToken, auth_middleware_1.isEventOrganizer, event_controller_1.getEventAttendeesController);
+router.post("/:id/review", auth_middleware_1.VerifyToken, event_controller_1.createReviewController);
+exports.default = router;

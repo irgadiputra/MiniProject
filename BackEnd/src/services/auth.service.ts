@@ -1,7 +1,6 @@
-import { User } from "@prisma/client";
 import { sign } from "jsonwebtoken";
 import prisma from "../lib/prisma";
-import { hash, genSaltSync, compare } from "bcrypt";
+import { hash, genSaltSync, compare } from "bcryptjs";
 import { FE_URL, SECRET_KEY } from "../config";
 import { LoginParam, RegisterParam, UpdateProfileParam } from "../type/user.type";
 
@@ -9,7 +8,6 @@ import handlebars from "handlebars";
 import path from "path";
 import fs from "fs";
 import { Transporter } from "../utils/nodemailer";
-import { IUserReqParam } from "../custom";
 
 async function FindUserByEmail(email: string) {
   try {
@@ -37,14 +35,14 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
     const referralBonus = 10000;
     const referrerBonus = 10000;
     const now = new Date();
-    const expiryDate = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 3 months from now
+    const expiryDate = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 3 months
     let newUser = {
       id: -1,
       first_name: param.first_name,
       last_name: param.last_name,
       email: param.email};
 
-    if (isExist) throw new Error("Email sudah terdaftar");
+    if (isExist) throw new Error("Email is registered");
 
     await prisma.$transaction(async (t) => {
       let referredById: number | null = null;
@@ -55,9 +53,8 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
           where: { referal_code: param.referral_code },
         });
 
-        if (!referrer) throw new Error("Kode referral tidak valid");
+        if (!referrer) throw new Error("Referal code is not valid");
 
-        // Reward the referrer
         await t.user.update({
           where: { id: referrer.id },
           data: {
@@ -66,7 +63,7 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
         });
 
         referredById = referrer.id;
-        newUserPoint = referralBonus; // reward for being referred
+        newUserPoint = referralBonus;
       }
 
       const salt = genSaltSync(10);
@@ -87,7 +84,6 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
         },
       });
 
-      // if new user got points, add history
       if (newUserPoint > 0) {
         await t.pointHistory.create({
           data: {
@@ -118,7 +114,6 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
       const templateSource = fs.readFileSync(templatePath, "utf-8");
       const compiledTemplate = handlebars.compile(templateSource);
       const html = compiledTemplate({ email: param.email, fe_url: `${FE_URL}/auth/verify-email?token=${token}` })
-  
       await Transporter.sendMail({
         from: "LoketKita",
         to: param.email,
@@ -137,11 +132,11 @@ async function LoginService(param: LoginParam) {
   try {
     const user = await FindUserByEmail(param.email);
 
-    if (!user) throw new Error("Email tidak terdaftar");
+    if (!user) throw new Error("Email is not registered");
 
     const checkPass = await compare(param.password, user.password);
 
-    if (!checkPass) throw new Error("Password Salah");
+    if (!checkPass) throw new Error("Wrong Password");
 
     const payload = {
       email: user.email,
@@ -263,7 +258,6 @@ async function SendVerifyEmailService(id: number) {
       const templateSource = fs.readFileSync(templatePath, "utf-8");
       const compiledTemplate = handlebars.compile(templateSource);
       const html = compiledTemplate({ email: user.email, fe_url: `${FE_URL}/auth/verify-email?token=${token}` })
-  
       await Transporter.sendMail({
         from: "LoketKita",
         to: user.email,
@@ -357,4 +351,4 @@ async function generateUniqueReferralCode(length = 8) {
 
 
 
-export { RegisterService, LoginService, UpdateProfileService, KeepLoginService, expireUserPoints, VerifyEmailService, SendVerifyEmailService };
+export { FindUserByEmail, generateUniqueReferralCode, RegisterService, LoginService, UpdateProfileService, KeepLoginService, expireUserPoints, VerifyEmailService, SendVerifyEmailService };
