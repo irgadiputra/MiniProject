@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
@@ -28,11 +28,11 @@ export default function ProfileForm() {
   const { file, filePreview, setFilePreview, handleFileChange } = useImageUpload(auth.user.profile_pict ? `${apiUrl}${auth.user.profile_pict}` : '/default-avatar.png');
   const isAuthorized = useAuthRedirect();
 
-  const [loading, setLoading] = React.useState(false);
-  const [toastVisible, setToastVisible] = React.useState(false);
+  const [loading, setLoading] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
 
   // Toast event handlers
-  React.useEffect(() => {
+  useEffect(() => {
     const handleOpen = () => setToastVisible(true);
     const handleClose = () => setToastVisible(false);
 

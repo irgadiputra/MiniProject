@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { IEvent } from './type';
 import { apiUrl } from '../../config';
@@ -18,6 +19,8 @@ const modalVariants = {
 };
 
 const EventModal: React.FC<{ event: IEvent; onClose: () => void }> = ({ event, onClose }) => {
+  const router = useRouter();
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('id-ID', {
@@ -94,7 +97,7 @@ const EventModal: React.FC<{ event: IEvent; onClose: () => void }> = ({ event, o
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
-              onClick={() => console.log('Update clicked')}
+              onClick={() => router.push(`/my-event/update/${event.id}`)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
             >
               Update
