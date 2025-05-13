@@ -1,103 +1,165 @@
 'use client';
 
-import { useAppDispatch } from '@/lib/redux/hooks';
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import ILogin from './type';
-import { Formik, Form, Field, FormikProps } from "formik";
-import loginSchema from './schema';
-import sign from 'jwt-encode'
+import { Formik, Form, Field, FormikProps } from 'formik';
 import { setCookie } from 'cookies-next';
+import { useState } from 'react';
+import { useAppDispatch } from '@/lib/redux/hooks';
 import { onLogin } from '@/lib/redux/features/authSlices';
+import Link from 'next/link';
+import { loginSchema } from './schema';
+import { apiUrl } from '@/pages/config';
+import { AiOutlineClose } from 'react-icons/ai';
 
 export default function LoginForm() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessages, setErrorMessages] = useState<{ email?: string; password?: string }>({});
+
   const initialValue: ILogin = {
-    email: "",
-    password: "",
-  }
+    email: '',
+    password: '',
+  };
 
-  const login = async(values: ILogin) => {
+  const login = async (values: ILogin) => {
     try {
-     const { data } = await axios.get(
-      `http://localhost:7001/users?email=${values.email}&password=${values.password}`
-    );
+      setLoading(true);
+      setErrorMessages({});
+      const { data } = await axios.post(`${apiUrl}/auth/login`, values);
 
-    if (data.length === 0) throw new Error("E-Mail atau Password salah");
+      if (!data.token) throw new Error('Token not received');
 
-    const stateUser = {
-      user: {
-        email: data[0].email,
-        firstname: data[0].firstname,
-        lastname: data[0].lastname,
-    },
-      isLogin: true
-    };
+      const stateUser = {
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          first_name: data.user.first_name,
+          last_name: data.user.last_name,
+          status_role: data.user.status_role,
+          profile_pict: data.user.profile_pict,
+          referal_code: data.user.referal_code,
+          point: data.user.point,
+          is_verified: data.user.is_verified
+        },
+        token: data.token,
+        isLogin: true,
+      };
 
-    const token = sign(stateUser, "test")
-  
-    setCookie("access_token", token)
-    dispatch(onLogin(stateUser))
+      setCookie('access_token', data.token);
+      dispatch(onLogin(stateUser));
+      alert('Login successful!');
+      router.push('/');
+    } catch (err: any) {
+      const statusCode = err?.response?.status;
+      const errorMessage = err?.response?.data?.message || 'Login failed, please try again.';
 
-      alert("Login Sukses")
-      router.push("/")
-
-    } catch (err) {
-      alert((err as any).message);
+      if (statusCode === 404) {
+        setErrorMessages((prev) => ({ ...prev, email: 'Unregistered email' }));
+      } else if (statusCode === 401) {
+        setErrorMessages((prev) => ({ ...prev, password: 'Incorrect password' }));
+      } else {
+        setErrorMessages((prev) => ({ ...prev, general: errorMessage }));
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex items-center justify-center min-h-screen bg-slate-100 px-4">
       <Formik
         initialValues={initialValue}
         validationSchema={loginSchema}
-        onSubmit={(values, { resetForm }) => {
-          login(values);
+        validateOnBlur={false}
+        validateOnChange={false}
+        onSubmit={async (values, { resetForm, setSubmitting }) => {
+          await login(values);
           resetForm();
+          setSubmitting(false);
         }}
       >
         {(props: FormikProps<ILogin>) => {
-          const { values, handleChange, touched, errors } = props;
+          const { touched, errors, setFieldError } = props;
+
           return (
-            <Form className="flex flex-col gap-2 w-full max-w-[350px] 
-                           bg-white border border-gray-300 rounded-lg shadow-lg p-6"
-            >
+            <Form className="flex flex-col gap-5 w-full max-w-md bg-white p-10 rounded-2xl shadow-md relative">
+              {/* Close Button */}
+              <button
+                type="button"
+                className="absolute top-4 right-4 text-xl text-slate-400 hover:text-blue-500 transition"
+                onClick={() => router.push('/')}
+              >
+                <AiOutlineClose />
+              </button>
+
+              <h2 className="text-2xl font-semibold text-slate-800 mb-4">Welcome Back</h2>
+
               <div className="flex flex-col w-full">
-                <label>E-Mail:</label>
+                <label className="text-sm font-medium text-slate-700 mb-1">E-Mail:</label>
                 <Field
                   type="text"
                   name="email"
-                  onChange={handleChange}
-                  value={values.email}
-                  className="border border-black rounded-[6px] h-[30px] p-1 w-full"
+                  className="border border-slate-300 focus:border-blue-500 focus:ring focus:ring-blue-200 rounded-md p-2 h-10 w-full bg-white text-slate-800 placeholder-slate-400 outline-none transition-all"
+                  onFocus={() => {
+                    setErrorMessages((prev) => ({ ...prev, email: '' }));
+                    setFieldError('email', '');
+                  }}
                 />
                 {touched.email && errors.email && (
-                  <div className="text-red-500">{errors.email}</div>
+                  <div className="text-red-600 text-xs mt-1">{errors.email}</div>
                 )}
-              </div>
-  
-              <div className="flex flex-col w-full">
-                <label>Password:</label>
-                <Field
-                  type="password"
-                  name="password"
-                  onChange={handleChange}
-                  value={values.password}
-                  className="border border-black rounded-[6px] h-[30px] p-1 w-full"
-                />
-                {touched.password && errors.password && (
-                  <div className="text-red-500">{errors.password}</div>
+                {errorMessages.email && (
+                  <div className="text-red-600 text-xs mt-1">{errorMessages.email}</div>
                 )}
               </div>
 
-              <button 
-                type="submit" 
-                className="mt-4 p-2 bg-blue-500 text-white rounded w-full cursor-pointer"
+              <div className="flex flex-col w-full">
+                <label className="text-sm font-medium text-slate-700 mb-1">Password:</label>
+                <div className="relative w-full">
+                  <Field
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    className="border border-slate-300 focus:border-blue-500 focus:ring focus:ring-blue-200 rounded-md p-2 h-10 w-full bg-white text-slate-800 placeholder-slate-400 outline-none transition-all"
+                    onFocus={() => {
+                      setErrorMessages((prev) => ({ ...prev, password: '' }));
+                      setFieldError('password', '');
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-blue-500 hover:underline"
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                {touched.password && errors.password && (
+                  <div className="text-red-600 text-xs mt-1">{errors.password}</div>
+                )}
+                {errorMessages.password && (
+                  <div className="text-red-600 text-xs mt-1">{errorMessages.password}</div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="mt-2 p-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-all disabled:opacity-50"
+                disabled={loading}
               >
-                Submit
+                {loading ? 'Logging in...' : 'Login'}
               </button>
+
+              <p className="text-sm text-center text-slate-600 mt-4">
+                Don't have an account?{' '}
+                <Link href="/register" className="text-blue-600 hover:underline">
+                  Sign Up Here
+                </Link>
+              </p>
             </Form>
           );
         }}

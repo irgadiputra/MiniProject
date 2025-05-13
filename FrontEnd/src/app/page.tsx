@@ -1,6 +1,13 @@
-import HomePage from '@/pages/home-page'
-import React from 'react'
+import NavBar from '../pages/home-page/components/navbar'
+import Hero from "../pages/home-page/components/hero";
 
-export default function page() {
-  return <HomePage />
+export default function HomePage() {
+  return (
+    <>
+    <NavBar />
+    <Hero />
+    </>
+      
+  )
 }
+

@@ -1,10 +1,11 @@
-type role = "Customer" | "Organiser" | "";
+type role = "customer" | "organiser" | "";
 
 export default interface IRegister {
-  firstname: string;
-  lastname: string;
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
   confirmPassword: string;
-  role: role;
+  status_role: role;
+  referral_code?: string;
 }
