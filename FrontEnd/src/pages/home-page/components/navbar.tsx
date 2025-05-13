@@ -67,7 +67,7 @@ export default function Navbar() {
   return (
     <>
       <nav className="bg-amber-700 h-16 w-full flex items-center justify-between px-6 relative z-40">
-        <div className="text-white font-bold text-lg">LoketAcara</div>
+        <div className="text-white font-bold text-lg">LoketKita</div>
 
         {/* Desktop search */}
         <div className="relative hidden md:flex items-center gap-2 flex-1 justify-center max-w-md">
@@ -102,7 +102,7 @@ export default function Navbar() {
                   className="cursor-pointer flex gap-2 items-center"
                 >
                   {auth.user?.profile_pict ? (
-                   <img 
+                   <img   
                     src={`${apiUrl}${auth.user.profile_pict}`} 
                     alt="Avatar"
                     className='w-8 h-8 rounded-full'
