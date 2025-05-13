@@ -1,5 +1,4 @@
-import LoginPage from '@/pages/login-page'
-import React from 'react'
+import LoginPage from "@/pages/login-page"
 
 export default function page() {
   return (

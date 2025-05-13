@@ -1,20 +1,17 @@
 import * as Yup from 'yup'
 
 const registerSchema = Yup.object().shape({
-  firstname: Yup.string().min(3, "Minimal 3 Karakter").required("Wajib Diisi"),
-  lastname: Yup.string().required("Wajib Diisi"),
+  first_name: Yup.string().min(3, "Minimal 3 Karakter").required("Wajib Diisi"),
+  last_name: Yup.string().required("Wajib Diisi"),
   email: Yup.string().email("Format E-Mail Salah").required("Wajib Diisi"),
-  password: Yup
-    .string()
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/, 
-      "Minimum eight characters, at least one uppercase letter, one lowercase letter and one number"
-    )
+  password: Yup.string()
+    .matches(/^(?=.*[a-z])(?=.*\d)[a-z\d]{8,}$/, "Minimal 8 Karakter, Angka dan Huruf")
     .required("Wajib Diisi"),
-  confirmPassword: Yup
-    .string()
+  confirmPassword: Yup.string()
     .oneOf([Yup.ref('password'), ''], 'Password Harus Cocok')
     .required('Wajib Diisi'),
-  role: Yup.string().oneOf(['Customer', 'Organiser'], "Wajib Diisi").required('Wajib Diisi')
-})
+  status_role: Yup.string().oneOf(['customer', 'organiser'], "Wajib Diisi").required('Wajib Diisi')
+});
+
 
 export default registerSchema
