@@ -38,7 +38,7 @@ export default function SearchPage() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        setLoading(true);
+        setLoading(true); // Show loading while fetching events
 
         const res = await axios.get(`${apiUrl}/event/search`, {
           params: {
@@ -54,9 +54,9 @@ export default function SearchPage() {
         setTotalCount(res.data.totalCount);
       } catch (error) {
         console.error('Failed to fetch events:', error);
-        setEvents([]);
+        setEvents([]); // Set empty array in case of failure
       } finally {
-        setLoading(false);
+        setLoading(false); // Set loading to false once fetch is done
       }
     };
 

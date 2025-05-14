@@ -4,9 +4,9 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAppSelector } from '@/lib/redux/hooks';
 import { useRouter } from 'next/navigation';
-import { apiUrl } from '../../config';
-import EventModal from './EventModal';
-import { IEvent } from './type';
+import { apiUrl } from '../config';
+import EventModal from './components/EventModal';
+import { IEvent, ITransaction } from './components/type';
 import { AnimatePresence } from 'framer-motion';
 import { AiOutlineClose } from 'react-icons/ai'; // Import the close icon
 
@@ -16,6 +16,8 @@ const OrganizerEvents = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [selectedEventData, setSelectedEventData] = useState<IEvent | null>(null);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<number | null>(null);
+  const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const auth = useAppSelector((state) => state.auth);
   const router = useRouter();
 
@@ -77,9 +79,28 @@ const OrganizerEvents = () => {
     }
   };
 
+  const handleTransactionStatusChange = async (transactionId: number, status: string) => {
+    try {
+      const token = auth.token;
+
+      const response = await axios.patch(`${apiUrl}/transaction/${transactionId}/status`, 
+        { status }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+      console.log('Transaction status updated:', response.data);
+      setTransactionStatus(status);
+      setSelectedTransactionId(null); // Close transaction modal
+    } catch (err) {
+      console.error('Failed to update transaction status:', err);
+      setError('Could not update transaction status');
+    }
+  };
+
   const handleCloseModal = () => {
     setSelectedEventId(null);
     setSelectedEventData(null);
+    setSelectedTransactionId(null);  // Close transaction modal
   };
 
   const formatCurrency = (amount: number) => {
@@ -150,6 +171,7 @@ const OrganizerEvents = () => {
             key={selectedEventId}
             event={selectedEventData}
             onClose={handleCloseModal}
+            onTransactionStatusChange={handleTransactionStatusChange}  // New prop for handling transaction status change
           />
         )}
       </AnimatePresence>

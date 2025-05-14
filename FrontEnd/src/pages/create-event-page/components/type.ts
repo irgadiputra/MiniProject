@@ -1,4 +1,4 @@
-type IStatus = "Gratis" | "Berbayar" | ""
+export type IStatus = "gratis" | "berbayar" | ""
 
 export default interface IEvent {
   name: string;

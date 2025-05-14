@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import storage from 'redux-persist/lib/storage'; // LocalStorage or SessionStorage
+import { persistReducer } from 'redux-persist';
 
-// Define role type for the user
 type StatusRole = 'customer' | 'organiser' | null;
 
 export interface IUser {
@@ -12,13 +13,13 @@ export interface IUser {
   profile_pict: string;
   referal_code: string;
   point: number;
-  is_verified: boolean
+  is_verified: boolean;
 }
 
 export interface IAuth {
   user: IUser;
   isLogin: boolean;
-  token: string | null;  
+  token: string | null;
 }
 
 const initialState: IAuth = {
@@ -31,42 +32,48 @@ const initialState: IAuth = {
     profile_pict: '',
     referal_code: '',
     point: 0,
-    is_verified: false
+    is_verified: false,
   },
   isLogin: false,
-  token: null,  // Initialize the token as null
+  token: null,
+};
+
+const persistConfig = {
+  key: 'auth',
+  storage, 
+  whitelist: ['user', 'token'],
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Login action to update the user and token
     onLogin: (state, action: PayloadAction<{ user: IUser; token: string }>) => {
-      state.user = action.payload.user;  // Store user information
-      state.isLogin = true;  // User is logged in
-      state.token = action.payload.token;  // Store the token (JWT)
-      
-      // Optionally store the token in localStorage for persistence
-      localStorage.setItem('authToken', action.payload.token);
+      state.user = action.payload.user;
+      state.isLogin = true;
+      state.token = action.payload.token;
     },
-
-    // Logout action to clear the user data and token
     onLogout: (state) => {
       state.user = initialState.user;
       state.isLogin = false;
-      state.token = null;  // Clear the token
-      localStorage.removeItem('authToken');  // Remove the token from localStorage
+      state.token = null;
     },
-
-    // Update the token (e.g., for refreshing the token)
     updateToken: (state, action: PayloadAction<string>) => {
-      state.token = action.payload;  // Update the token
-      localStorage.setItem('authToken', action.payload);  // Persist the token
-    }
+      state.token = action.payload;
+    },
+    restoreLogin: (state, action: PayloadAction<IAuth>) => {
+      const { user, isLogin, token } = action.payload;
+      if (user && token) {
+        state.user = user;
+        state.isLogin = isLogin;
+        state.token = token;
+      }
+    },
   },
 });
 
-export const { onLogin, onLogout, updateToken } = authSlice.actions;
+const persistedAuthReducer = persistReducer(persistConfig, authSlice.reducer);
 
-export default authSlice.reducer;
+export const { onLogin, onLogout, updateToken, restoreLogin } = authSlice.actions;
+
+export default persistedAuthReducer;

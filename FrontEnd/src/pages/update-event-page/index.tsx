@@ -3,16 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
-import { getCookie } from 'cookies-next';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
 import { AiOutlineClose } from 'react-icons/ai';
 import { apiUrl } from '../config';
 import { EventSchema } from './components/schema';
 import { IEvent } from './components/type';
 import { useAppSelector } from '@/lib/redux/hooks';
+import { showError, showPromiseToast } from '@/utils/toast';
+import { ErrorMessage, Field, Form, Formik } from 'formik';
 
 export default function UpdateEventForm() {
-  const auth = useAppSelector((state) => state.auth);
+  const auth = useAppSelector((state) => state.auth); // Use Redux to access authentication state
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
@@ -25,7 +25,9 @@ export default function UpdateEventForm() {
 
     const fetchEvent = async () => {
       try {
-        const token = getCookie('access_token');
+        const token = auth.token; // Get token from Redux state
+        if (!token) throw new Error('Token is missing'); // Early check for missing token
+
         const res = await axios.get(`${apiUrl}/event/${id}/organizer/${auth.user.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -37,12 +39,12 @@ export default function UpdateEventForm() {
         });
         if (event.image) setFilePreview(`${apiUrl}${event.image}`);
       } catch (err) {
-        alert('Failed to fetch event data');
+        showError('Failed to fetch event data');
       }
     };
 
     fetchEvent();
-  }, [id, auth.user.id]);
+  }, [id, auth.token, auth.user.id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -58,29 +60,43 @@ export default function UpdateEventForm() {
     values: IEvent,
     { setSubmitting }: { setSubmitting: (val: boolean) => void }
   ) => {
-    try {
-      const token = getCookie('access_token');
-      const formData = new FormData();
-      Object.entries(values).forEach(([key, value]) => {
-        formData.append(key, value as string);
-      });
-      if (file) formData.append('file', file);
+    const promise = new Promise<string>(async (resolve, reject) => {  // Explicitly typing the Promise to return string
+      try {
+        const token = auth.token; // Get token from Redux state
+        if (!token) throw new Error('Token is missing'); // Early check for missing token
 
-      await axios.patch(`${apiUrl}/event/${id}`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+        const formData = new FormData();
+        formData.append('name', values.name);
+        formData.append('location', values.location);
+        formData.append('start_date', values.start_date);
+        formData.append('end_date', values.end_date);
+        formData.append('quota', String(Number(values.quota)));
+        formData.append('price', String(Number(values.price)));
+        formData.append('status', values.status);
+        formData.append('description', values.description);
+        if (file) formData.append('file', file);
 
-      alert('Event updated successfully');
-      router.push('/');
-    } catch (err) {
-      console.error(err);
-      alert('Failed to update event');
-    } finally {
-      setSubmitting(false);
-    }
+        await axios.patch(`${apiUrl}/event/${id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        resolve('Event updated successfully!');
+        router.push('/my-event')
+      } catch (err: any) {
+        reject(err.response?.data.message || 'Failed to update event');
+      }
+    });
+
+    showPromiseToast(promise, {
+      loading: 'Updating event...',
+      success: (data: string) => data,  
+      error: (err: string) => `Failed to update event: ${err}`, 
+    });
+
+    setSubmitting(false);
   };
 
   if (!initialValues) return <p className="text-center mt-20">Loading...</p>;
@@ -89,6 +105,7 @@ export default function UpdateEventForm() {
     <div className="flex items-center justify-center min-h-screen bg-slate-100 px-4">
       <Formik
         initialValues={initialValues}
+        enableReinitialize
         validationSchema={EventSchema}
         onSubmit={handleSubmit}
       >
@@ -97,7 +114,7 @@ export default function UpdateEventForm() {
             <button
               type="button"
               className="absolute top-4 right-4 text-xl text-slate-400 hover:text-blue-500"
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/my-event')}
             >
               <AiOutlineClose />
             </button>
@@ -126,10 +143,12 @@ export default function UpdateEventForm() {
               <div className="flex flex-col">
                 <label className="text-sm font-medium text-slate-700">Start Date</label>
                 <Field type="date" name="start_date" className="border rounded-md p-2 h-10" />
+                <ErrorMessage name="start_date" component="div" className="text-red-600 text-xs mt-1" />
               </div>
               <div className="flex flex-col">
                 <label className="text-sm font-medium text-slate-700">End Date</label>
                 <Field type="date" name="end_date" className="border rounded-md p-2 h-10" />
+                <ErrorMessage name="end_date" component="div" className="text-red-600 text-xs mt-1" />
               </div>
             </div>
 
@@ -143,6 +162,7 @@ export default function UpdateEventForm() {
                 rows={3}
                 disabled
               />
+              <ErrorMessage name="description" component="div" className="text-red-600 text-xs mt-1" />
             </div>
 
             {/* Status (disabled) */}
@@ -159,6 +179,7 @@ export default function UpdateEventForm() {
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </label>
               ))}
+              <ErrorMessage name="status" component="div" className="text-red-600 text-xs mt-1" />
             </div>
 
             {/* Image upload */}

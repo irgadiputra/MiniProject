@@ -1,17 +1,18 @@
-'use client';
+'use client'
 
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import ILogin from './type';
 import { Formik, Form, Field, FormikProps } from 'formik';
-import { setCookie } from 'cookies-next';
-import { useState } from 'react';
 import { useAppDispatch } from '@/lib/redux/hooks';
 import { onLogin } from '@/lib/redux/features/authSlices';
+import { showSuccess, showError, showLoading } from '@/utils/toast'; // Importing the toast utils
 import Link from 'next/link';
 import { loginSchema } from './schema';
 import { apiUrl } from '@/pages/config';
 import { AiOutlineClose } from 'react-icons/ai';
+import toast from 'react-hot-toast';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -27,13 +28,15 @@ export default function LoginForm() {
   };
 
   const login = async (values: ILogin) => {
+    const toastId = showLoading('Logging in...'); // Show loading toast
+
     try {
-      setLoading(true);
-      setErrorMessages({});
       const { data } = await axios.post(`${apiUrl}/auth/login`, values);
 
+      // If no token is returned, throw an error
       if (!data.token) throw new Error('Token not received');
 
+      // Construct the user state object to dispatch to Redux
       const stateUser = {
         user: {
           id: data.user.id,
@@ -44,20 +47,22 @@ export default function LoginForm() {
           profile_pict: data.user.profile_pict,
           referal_code: data.user.referal_code,
           point: data.user.point,
-          is_verified: data.user.is_verified
+          is_verified: data.user.is_verified,
         },
-        token: data.token,
-        isLogin: true,
+        token: data.token, // Including the token to store in Redux
       };
 
-      setCookie('access_token', data.token);
-      dispatch(onLogin(stateUser));
-      alert('Login successful!');
-      router.push('/');
+      // Dispatch the login action to update Redux state
+      dispatch(onLogin(stateUser)); // Pass the user and token to Redux
+
+      showSuccess('Login successful!'); // Show success toast
+      router.push('/'); // Redirect to the home page after login
+
     } catch (err: any) {
       const statusCode = err?.response?.status;
       const errorMessage = err?.response?.data?.message || 'Login failed, please try again.';
 
+      // Handle specific error codes
       if (statusCode === 404) {
         setErrorMessages((prev) => ({ ...prev, email: 'Unregistered email' }));
       } else if (statusCode === 401) {
@@ -65,8 +70,11 @@ export default function LoginForm() {
       } else {
         setErrorMessages((prev) => ({ ...prev, general: errorMessage }));
       }
+
+      showError(errorMessage); // Show error toast
     } finally {
       setLoading(false);
+      toast.dismiss(toastId); // Dismiss the loading toast
     }
   };
 

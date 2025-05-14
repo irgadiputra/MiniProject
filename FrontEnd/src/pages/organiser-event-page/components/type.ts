@@ -1,18 +1,24 @@
-enum IStatus {
-  Gratis = 'gratis',
-  Berbayar = 'berbayar'
+interface IVoucher {
+  id: number;
+  code: string;
+  discount: string;
+  event_id: number;
+  start_date: string;
+  end_date: string;
+  created_at: string;
 }
 
 export interface IEvent {
   id: number;
   name: string;
   location: string;
+  price: number;
   start_date: string;
   end_date: string;
-  price: number;
-  status: IStatus;
+  quota: number;
+  status: string;
   description: string;
   image: string;
-  quota: number;
-  transactions: any[]
+  transactions: any[];  
+  voucher_event: IVoucher[];  
 }

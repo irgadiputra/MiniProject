@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useAppSelector } from "@/lib/redux/hooks";
-import OrganizerEventsPage from "@/pages/organiser-event-page";
 import { useRouter } from "next/navigation";
-import TransactionList from "@/pages/customer-event-page";
+import TransactionConfirmationPage from "@/pages/transaction-confirmation-page";
 
 export default function MyEventPage() {
   const auth = useAppSelector((state) => state.auth);
@@ -25,8 +24,8 @@ export default function MyEventPage() {
   }
 
   return auth.user.status_role === "organiser" ? (
-    <OrganizerEventsPage />
+    <TransactionConfirmationPage/>
   ) : (
-    <TransactionList />
+    <div>not yet</div>
   );
 }
