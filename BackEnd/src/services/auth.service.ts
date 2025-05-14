@@ -3,11 +3,11 @@ import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcryptjs";
 import { FE_URL, SECRET_KEY } from "../config";
 import { LoginParam, RegisterParam, UpdateProfileParam } from "../type/user.type";
-
 import handlebars from "handlebars";
 import path from "path";
 import fs from "fs";
 import { Transporter } from "../utils/nodemailer";
+import { HttpError } from "../utils/httpError";
 
 async function FindUserByEmail(email: string) {
   try {
@@ -17,7 +17,12 @@ async function FindUserByEmail(email: string) {
         first_name: true,
         last_name: true,
         password: true,
-        id: true
+        id: true,
+        status_role: true,
+        referal_code: true,
+        profile_pict: true,
+        point: true,
+        is_verified: true
       },
       where: {
         email,
@@ -35,16 +40,16 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
     const referralBonus = 10000;
     const referrerBonus = 10000;
     const now = new Date();
-    const expiryDate = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 3 months
+    const expiryDate = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 3 months from now
     let newUser = {
       id: -1,
       first_name: param.first_name,
       last_name: param.last_name,
       email: param.email};
 
-    if (isExist) throw new Error("Email is registered");
+    if (isExist) throw new HttpError(409, "Email sudah terdaftar");
 
-    await prisma.$transaction(async (t) => {
+    await prisma.$transaction(async (t: any) => {
       let referredById: number | null = null;
       let newUserPoint = 0;
 
@@ -53,8 +58,9 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
           where: { referal_code: param.referral_code },
         });
 
-        if (!referrer) throw new Error("Referal code is not valid");
+        if (!referrer) throw new HttpError(400, "Kode referral tidak valid");
 
+        // Reward the referrer
         await t.user.update({
           where: { id: referrer.id },
           data: {
@@ -63,7 +69,7 @@ async function RegisterService(param: RegisterParam & { referral_code?: string }
         });
 
         referredById = referrer.id;
-        newUserPoint = referralBonus;
+        newUserPoint = referralBonus; 
       }
 
       const salt = genSaltSync(10);
@@ -132,17 +138,22 @@ async function LoginService(param: LoginParam) {
   try {
     const user = await FindUserByEmail(param.email);
 
-    if (!user) throw new Error("Email is not registered");
+    if (!user) throw new HttpError(404, "Email tidak terdaftar");
 
     const checkPass = await compare(param.password, user.password);
-
-    if (!checkPass) throw new Error("Wrong Password");
+    
+    if (!checkPass) throw new HttpError(401, "Password Salah");
 
     const payload = {
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
       id: user.id,
+      profile_pict: user.profile_pict,
+      referal_code: user.referal_code,
+      status_role: user.status_role,
+      point: user.point,
+      is_verified: user.is_verified
     }
 
     const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h" });
@@ -169,9 +180,8 @@ async function UpdateProfileService(file: Express.Multer.File, param: UpdateProf
     if (param.first_name) updateData.first_name = param.first_name;
     if (param.last_name) updateData.last_name = param.last_name;
     if (param.email) updateData.email = param.email;
-    if (param.point) updateData.point = Number(param.point);
     if (param.is_verified) updateData.is_verified = Boolean(param.is_verified);
-    if (file) updateData.profile_pict = `/public/avatar/${file.filename}`;
+    if (file) updateData.profile_pict = `/avt/${file.filename}`;
 
     // Update password if provided
     if (param.new_password) {
@@ -199,6 +209,12 @@ async function UpdateProfileService(file: Express.Multer.File, param: UpdateProf
       first_name: updatedUser.first_name,
       last_name: updatedUser.last_name,
       id: updatedUser.id,
+      password: updatedUser.password,
+      profile_pict: updatedUser.profile_pict,
+      status_role: user.status_role,
+      referal_code: user.referal_code,
+      point: user.point,
+      is_verified: user.is_verified
     }
     const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h" });
 
@@ -222,6 +238,11 @@ async function KeepLoginService(id: number) {
       first_name: user.first_name,
       last_name: user.last_name,
       id: user.id,
+      profile_pict: user.profile_pict,
+      referal_code: user.referal_code,
+      status_role: user.status_role,
+      point: user.point
+
     }
 
     const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h" });
@@ -252,12 +273,18 @@ async function SendVerifyEmailService(id: number) {
         first_name: user.first_name,
         last_name: user.last_name,
         id: user.id,
+        profile_pict: user.profile_pict,
+        referal_code: user.referal_code,
+        status_role: user.status_role,
+        point: user.point,
+        is_verified: user.is_verified
       }
       const token = sign(payload, String(SECRET_KEY), { expiresIn: "15m" });
   
       const templateSource = fs.readFileSync(templatePath, "utf-8");
       const compiledTemplate = handlebars.compile(templateSource);
       const html = compiledTemplate({ email: user.email, fe_url: `${FE_URL}/auth/verify-email?token=${token}` })
+  
       await Transporter.sendMail({
         from: "LoketKita",
         to: user.email,
@@ -310,7 +337,7 @@ async function expireUserPoints() {
   console.log(`Processing ${expiredHistories.length} expired point histories.`);
 
   // Step 2: Process all expired points inside transaction
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     for (const history of expiredHistories) {
       // Decrease user's points
       await tx.user.update({

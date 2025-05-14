@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { CreateTransactionService, UpdateTransactionStatusService, UploadPaymentProofService } from "../services/transaction.service";
+import { CreateTransactionService, getTransactionByIdService, getTransactionListService, UpdateTransactionStatusService, UploadPaymentProofService } from "../services/transaction.service";
 import { IUserReqParam } from "../custom";
 import { CreateTransaction } from "../type/transaction.type";
 
@@ -22,6 +22,46 @@ async function CreateTransactionController(
         next(err);
     }
 }
+
+async function getTransactionByIdController(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const { id: userId } = req.user as IUserReqParam; 
+        const transactionId = parseInt(req.params.id); 
+
+        const transaction = await getTransactionByIdService(userId, transactionId);
+
+        res.status(200).json({
+            message: "Transaction retrieved successfully",
+            data: transaction
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function getTransactionListController(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const { id: userId } = req.user as IUserReqParam;
+
+        const transactions = await getTransactionListService(userId);
+
+        res.status(200).json({
+            message: "Transactions retrieved successfully",
+            data: transactions
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
 
 async function updateTransactionStatusController(
     req: Request,
@@ -64,4 +104,8 @@ async function UploadPaymentProofController(
 }
 
 
-export { CreateTransactionController, updateTransactionStatusController, UploadPaymentProofController }
+export { CreateTransactionController, 
+         updateTransactionStatusController, 
+         UploadPaymentProofController,
+         getTransactionByIdController,
+         getTransactionListService }

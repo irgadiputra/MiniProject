@@ -17,16 +17,25 @@ exports.verifyEmailController = verifyEmailController;
 exports.SendverifyEmailController = SendverifyEmailController;
 const auth_service_1 = require("../services/auth.service");
 const jsonwebtoken_1 = require("jsonwebtoken");
+const httpError_1 = require("../utils/httpError");
 function RegisterController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield (0, auth_service_1.RegisterService)(req.body);
+            console.log("Registering user with data:", req.body);
+            const data = yield (0, auth_service_1.RegisterService)(req.body);
             res.status(200).send({
                 message: "Register Berhasil",
+                data,
             });
         }
         catch (err) {
-            next(err);
+            if (err instanceof httpError_1.HttpError) {
+                res.status(err.status).send({ message: err.message });
+            }
+            else {
+                res.status(500).send({ message: "Internal Server Error" });
+                next();
+            }
         }
     });
 }
@@ -37,10 +46,17 @@ function LoginController(req, res, next) {
             res.status(200).cookie("access_token", data.token).send({
                 message: "Login Berhasil",
                 user: data.user,
+                token: data.token
             });
         }
         catch (err) {
-            next(err);
+            if (err instanceof httpError_1.HttpError) {
+                res.status(err.status).send({ message: err.message });
+            }
+            else {
+                res.status(500).send({ message: "Internal Server Error" });
+                next();
+            }
         }
     });
 }
@@ -52,7 +68,8 @@ function UpdateProfileController(req, res, next) {
             const data = yield (0, auth_service_1.UpdateProfileService)(file, req.body, id);
             res.status(200).cookie("access_token", data.token).send({
                 message: "update profile berhasil",
-                user: data.user.first_name,
+                user: data.user,
+                token: data.token
             });
         }
         catch (err) {

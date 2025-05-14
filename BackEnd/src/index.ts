@@ -8,6 +8,7 @@ import AdminRouter from "./routers/admin.router";
 import OrganizerRouter from "./routers/organizer.router";
 import { expireUserPointsTask } from "./utils/cron/user-point-task";
 import { AutoCancelTransactionsTask, AutoExpireTransactionsTask } from "./utils/cron/transaction-task";
+import cors from 'cors'
 
 const port = PORT || 8080;
 const app: Application = express();
@@ -17,6 +18,12 @@ AutoCancelTransactionsTask();
 AutoExpireTransactionsTask();
 
 app.use(express.json());
+
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true
+}));
+
 app.get(
   "/api",
   (req: Request, res: Response, next: NextFunction) => {
@@ -34,6 +41,8 @@ app.use("/transaction", TransactionRouter);
 app.use("/admin", AdminRouter);
 app.use("/organizer", OrganizerRouter);
 app.use("/avt", express.static(path.join(__dirname, "/public/avatar")));
+app.use("/evt", express.static(path.join(__dirname, "/public/event")));
+
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);

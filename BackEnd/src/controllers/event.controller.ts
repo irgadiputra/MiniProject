@@ -8,16 +8,15 @@ import {
   CreateVoucherService,
   deleteVoucherService,
   getEventAttendeesService,
-  createReviewService
+  createReviewService,
+  GetEventListByOrganizerService,
+  GetOrganizerEventByIdService,
+  GetEventByIdService, // Make sure this is imported from the service file
 } from "../services/event.service";
 import { IUserReqParam } from "../custom";
 import { CreateVoucher, EventParam, ReviewParam, UpdateEventParam } from "../type/event.type";
 
-async function CreateEventController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function CreateEventController(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.user as IUserReqParam;
     const request = req.body as EventParam;
@@ -33,11 +32,7 @@ async function CreateEventController(
   }
 }
 
-async function UpdateEventController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function UpdateEventController(req: Request, res: Response, next: NextFunction) {
   try {
     const eventId = parseInt(req.params.id);
     const file = req.file as Express.Multer.File;
@@ -54,11 +49,22 @@ async function UpdateEventController(
   }
 }
 
-async function GetEventListController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function GetEventByIdController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const eventId = parseInt(req.params.id);
+
+    const data = await GetEventByIdService(eventId);
+
+    res.status(200).json({
+      message: "Event fetched successfully",
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function GetEventListController(req: Request, res: Response, next: NextFunction) {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -74,11 +80,47 @@ async function GetEventListController(
   }
 }
 
-async function SearchEventController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function GetEventListByOrganizerController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { organizerId } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const events = await GetEventListByOrganizerService({
+      organizerId: parseInt(organizerId),
+      skip,
+      limit,
+    });
+
+    res.status(200).json({
+      message: `Events created by organizer ${organizerId}`,
+      data: events,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getOrganizerEventByIdController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { organizerId, eventId } = req.params;
+
+    const event = await GetOrganizerEventByIdService(
+      parseInt(organizerId),
+      parseInt(eventId)
+    );
+
+    res.status(200).json({
+      message: "Event fetched successfully",
+      data: event,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function SearchEventController(req: Request, res: Response, next: NextFunction) {
   try {
     const { name, location, status, page = 1, limit = 10 } = req.query;
 
@@ -101,11 +143,7 @@ async function SearchEventController(
   }
 }
 
-async function DeleteEventController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function DeleteEventController(req: Request, res: Response, next: NextFunction) {
   try {
     const eventId = parseInt(req.params.id);
 
@@ -120,11 +158,7 @@ async function DeleteEventController(
   }
 }
 
-async function CreateVoucherController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function CreateVoucherController(req: Request, res: Response, next: NextFunction) {
   try {
     const eventId = parseInt(req.params.id);
     const request = req.body as CreateVoucher;
@@ -137,58 +171,45 @@ async function CreateVoucherController(
   }
 }
 
-async function deleteVoucherController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function deleteVoucherController(req: Request, res: Response, next: NextFunction) {
   try {
     const eventId = parseInt(req.params.id);
-    const code = req.params.code; 
+    const code = req.params.code;
 
-    const deletedEvent = await deleteVoucherService(Number(eventId), code);
+    const deletedVoucher = await deleteVoucherService(eventId, code);
 
     res.status(200).json({
-      message: "Event deleted successfully",
-      data: deletedEvent,
+      message: "Voucher deleted successfully",
+      data: deletedVoucher,
     });
-    res.json({ message: "Voucher deleted successfully" });
   } catch (err) {
     next(err);
   }
 }
 
-async function getEventAttendeesController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function getEventAttendeesController(req: Request, res: Response, next: NextFunction) {
   try {
-      const eventId = parseInt(req.params.id);
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const skip = (page - 1) * limit;
+    const eventId = parseInt(req.params.id);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
 
-      const result = await getEventAttendeesService(eventId, { skip, limit });
+    const result = await getEventAttendeesService(eventId, { skip, limit });
       res.status(200).json({
           message: 'Event attendee list ',
           data: result
-      });
+    });
   } catch (err) {
-      console.error(err);
-      next(err);
+    console.error(err);
+    next(err);
   }
 }
 
-async function createReviewController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function createReviewController(req: Request, res: Response, next: NextFunction) {
   try {
     const eventId = parseInt(req.params.id);
     const { id: userId } = req.user as IUserReqParam;
-    const request = req.body as ReviewParam; 
+    const request = req.body as ReviewParam;
 
     const createdReview = await createReviewService(userId, Number(eventId), request);
 
@@ -202,8 +223,6 @@ async function createReviewController(
   }
 }
 
-
-
 export {
   CreateEventController,
   GetEventListController,
@@ -213,5 +232,8 @@ export {
   CreateVoucherController,
   deleteVoucherController,
   getEventAttendeesController,
-  createReviewController
-}
+  createReviewController,
+  GetEventListByOrganizerController,
+  getOrganizerEventByIdController,
+  GetEventByIdController
+};

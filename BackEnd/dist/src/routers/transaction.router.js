@@ -11,6 +11,8 @@ const transaction_schema_1 = require("../schemas/transaction.schema");
 const validator_middleware_1 = __importDefault(require("../middlewares/validator.middleware"));
 const router = (0, express_1.Router)();
 router.post("/", auth_middleware_1.VerifyToken, (0, validator_middleware_1.default)(transaction_schema_1.CreateTransactionSchema), transaction_controller_1.CreateTransactionController);
+router.get("/:id", auth_middleware_1.VerifyToken, transaction_controller_1.getTransactionByIdController);
+router.get("/", auth_middleware_1.VerifyToken, transaction_controller_1.getTransactionListController);
 router.patch("/:id/status", auth_middleware_1.VerifyToken, transaction_controller_1.updateTransactionStatusController);
 router.patch("/:id", auth_middleware_1.VerifyToken, (0, multer_1.Multer)("diskStorage", "AVT", "transaction").single("file"), transaction_controller_1.UploadPaymentProofController);
 exports.default = router;

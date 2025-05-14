@@ -100,6 +100,43 @@ async function CreateTransactionService(
     return transaction;
 }
 
+async function getTransactionListService(userId: number) {
+    const transactions = await prisma.transaction.findMany({
+        where: { user_id: userId },
+        include: {
+            event: true,
+            user: true
+        },
+        orderBy: {
+            created_at: 'desc'
+        }
+    });
+
+    return transactions;
+}
+
+
+async function getTransactionByIdService(
+    userId: number,
+    transactionId: number
+) {
+    const transaction = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: { user: true, event: true } // Including related user and event data
+    });
+
+    if (!transaction) {
+        throw new Error("Transaction not found.");
+    }
+
+    if (transaction.user_id !== userId) {
+        throw new Error("Unauthorized access to this transaction.");
+    }
+
+    return transaction;
+}
+
+
 async function UpdateTransactionStatusService(
     organizerId: number,
     transactionId: number,
@@ -246,7 +283,7 @@ async function UploadPaymentProofService(
         }
 
         let uploadedUrl = "";
-        if (file) uploadedUrl = `/public/transaction/${file.filename}`;
+        if (file) uploadedUrl = `/tra/${file.filename}`;
 
         const transactionProof = await prisma.transaction.update({
             where: { id: id },
@@ -363,5 +400,7 @@ export {
     UpdateTransactionStatusService,
     UploadPaymentProofService,
     AutoExpireTransactions,
-    AutoCancelTransactions
+    AutoCancelTransactions,
+    getTransactionByIdService,
+    getTransactionListService
 }

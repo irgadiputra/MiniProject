@@ -21,6 +21,9 @@ exports.CreateVoucherService = CreateVoucherService;
 exports.deleteVoucherService = deleteVoucherService;
 exports.getEventAttendeesService = getEventAttendeesService;
 exports.createReviewService = createReviewService;
+exports.GetEventListByOrganizerService = GetEventListByOrganizerService;
+exports.GetOrganizerEventByIdService = GetOrganizerEventByIdService;
+exports.GetEventByIdService = GetEventByIdService;
 const prisma_1 = __importDefault(require("../lib/prisma"));
 function CreateEventService(param, userId, file) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -32,10 +35,10 @@ function CreateEventService(param, userId, file) {
                     start_date: new Date(param.start_date),
                     end_date: new Date(param.end_date),
                     quota: Number(param.quota),
-                    status: "New",
+                    status: param.status,
                     description: param.description,
                     organizer_id: userId,
-                    image: `/public/event/${file.filename}`,
+                    image: `/evt/${file.filename}`,
                     price: Number(param.price),
                 },
             });
@@ -59,7 +62,7 @@ function UpdateEventService(eventId, param, file) {
         if (param.end_date)
             updateData.end_date = new Date(param.end_date);
         if (file)
-            updateData.image = `/public/event/${file.filename}`;
+            updateData.image = `/evt/${file.filename}`;
         const updatedEvent = yield prisma_1.default.event.update({
             where: { id: eventId },
             data: updateData,
@@ -73,6 +76,7 @@ function GetEventListService(_a) {
             skip,
             take: limit,
             select: {
+                id: true,
                 name: true,
                 price: true,
                 image: true,
@@ -96,6 +100,166 @@ function GetEventListService(_a) {
             },
         });
         return events;
+    });
+}
+function GetEventListByOrganizerService(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ organizerId, skip, limit, }) {
+        const events = yield prisma_1.default.event.findMany({
+            where: {
+                organizer_id: organizerId, // Use organizer_id to find events by this organizer
+            },
+            skip,
+            take: limit,
+            select: {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+                location: true,
+                start_date: true,
+                end_date: true,
+                quota: true,
+                status: true,
+                description: true,
+                transactions: true
+            },
+            orderBy: {
+                start_date: 'asc', // Sort events by start date in ascending order
+            },
+        });
+        return events;
+    });
+}
+function GetOrganizerEventByIdService(organizerId, eventId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const event = yield prisma_1.default.event.findFirst({
+                where: {
+                    id: eventId,
+                    organizer_id: organizerId,
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    location: true,
+                    price: true,
+                    start_date: true,
+                    end_date: true,
+                    quota: true,
+                    status: true,
+                    description: true,
+                    image: true,
+                    transactions: {
+                        select: {
+                            id: true,
+                            user_id: true,
+                            quantity: true,
+                            original_amount: true,
+                            discounted_amount: true,
+                            event_id: true,
+                            status: true,
+                            total_price: true,
+                            point_reward: true,
+                            point: true,
+                            payment_proof: true,
+                            payment_uploaded_at: true,
+                            confirmed_at: true,
+                            expired_at: true,
+                            voucher_id: true,
+                            coupon_id: true,
+                            created_at: true,
+                            user: {
+                                select: {
+                                    id: true,
+                                    email: true,
+                                },
+                            },
+                            event: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    location: true, // Select relevant event fields if needed
+                                },
+                            },
+                            voucher: {
+                                select: {
+                                    id: true,
+                                    code: true,
+                                    discount: true, // Select relevant voucher fields if needed
+                                },
+                            },
+                            coupon: {
+                                select: {
+                                    id: true,
+                                    code: true,
+                                    discount: true, // Select relevant coupon fields if needed
+                                },
+                            },
+                        },
+                    },
+                    voucher_event: {
+                        select: {
+                            id: true,
+                            code: true,
+                            discount: true,
+                            event_id: true,
+                            start_date: true,
+                            end_date: true,
+                            created_at: true,
+                        },
+                    },
+                },
+            });
+            if (!event) {
+                throw new Error("Event not found or does not belong to this organizer");
+            }
+            return event;
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+function GetEventByIdService(eventId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const event = yield prisma_1.default.event.findUnique({
+                where: {
+                    id: eventId,
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    location: true,
+                    price: true,
+                    start_date: true,
+                    end_date: true,
+                    quota: true,
+                    status: true,
+                    description: true,
+                    image: true,
+                    transactions: true,
+                    voucher_event: {
+                        select: {
+                            id: true,
+                            code: true,
+                            discount: true,
+                            event_id: true,
+                            start_date: true,
+                            end_date: true,
+                            created_at: true,
+                        },
+                    },
+                },
+            });
+            if (!event) {
+                throw new Error("Event not found");
+            }
+            return event;
+        }
+        catch (error) {
+            throw error;
+        }
     });
 }
 function SearchEventService(_a) {
@@ -125,8 +289,20 @@ function DeleteEventService(eventId) {
 }
 function CreateVoucherService(eventId, payload) {
     return __awaiter(this, void 0, void 0, function* () {
+        const event = yield prisma_1.default.event.findUnique({
+            where: { id: eventId },
+        });
+        if (!event) {
+            throw new Error(`Event with ID ${eventId} does not exist`);
+        }
         const voucher = yield prisma_1.default.voucher.create({
-            data: Object.assign(Object.assign({}, payload), { start_date: new Date(payload.start_date), end_date: new Date(payload.end_date), event_id: eventId, discount: payload.discount }),
+            data: {
+                code: payload.code,
+                discount: payload.discount,
+                start_date: new Date(payload.start_date),
+                end_date: new Date(payload.end_date),
+                event_id: eventId,
+            },
         });
         return voucher;
     });
@@ -150,7 +326,7 @@ function getEventAttendeesService(eventId_1, _a) {
             prisma_1.default.transaction.findMany({
                 where: {
                     event_id: eventId,
-                    status: "DONE", // only confirmed attendees
+                    status: "DONE",
                 },
                 skip,
                 take: limit,

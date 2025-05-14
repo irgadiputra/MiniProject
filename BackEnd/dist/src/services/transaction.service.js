@@ -17,6 +17,8 @@ exports.UpdateTransactionStatusService = UpdateTransactionStatusService;
 exports.UploadPaymentProofService = UploadPaymentProofService;
 exports.AutoExpireTransactions = AutoExpireTransactions;
 exports.AutoCancelTransactions = AutoCancelTransactions;
+exports.getTransactionByIdService = getTransactionByIdService;
+exports.getTransactionListService = getTransactionListService;
 const prisma_1 = __importDefault(require("../lib/prisma"));
 const handlebars_1 = __importDefault(require("handlebars"));
 const path_1 = __importDefault(require("path"));
@@ -101,6 +103,36 @@ function CreateTransactionService(userId, param) {
                     expiresAt: now, // already used, so immediate
                 },
             });
+        }
+        return transaction;
+    });
+}
+function getTransactionListService(userId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const transactions = yield prisma_1.default.transaction.findMany({
+            where: { user_id: userId },
+            include: {
+                event: true,
+                user: true
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+        return transactions;
+    });
+}
+function getTransactionByIdService(userId, transactionId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const transaction = yield prisma_1.default.transaction.findUnique({
+            where: { id: transactionId },
+            include: { user: true, event: true } // Including related user and event data
+        });
+        if (!transaction) {
+            throw new Error("Transaction not found.");
+        }
+        if (transaction.user_id !== userId) {
+            throw new Error("Unauthorized access to this transaction.");
         }
         return transaction;
     });
@@ -219,7 +251,7 @@ function UploadPaymentProofService(id, file) {
             }
             let uploadedUrl = "";
             if (file)
-                uploadedUrl = `/public/transaction/${file.filename}`;
+                uploadedUrl = `/tra/${file.filename}`;
             const transactionProof = yield prisma_1.default.transaction.update({
                 where: { id: id },
                 data: {

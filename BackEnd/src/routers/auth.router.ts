@@ -8,7 +8,7 @@ const router = Router();
 
 router.post("/register", ReqValidator(registerSchema), RegisterController);
 router.post("/login", ReqValidator(loginSchema), LoginController);
-router.patch("/user", VerifyToken, Multer("diskStorage", "AVT", "avatar").single("file"), UpdateProfileController);
+router.patch("/user", VerifyToken, Multer("diskStorage", "AVT", "avatar").single("profile_pict"), UpdateProfileController);
 router.post("/relogin", VerifyToken, KeepLoginController);
 router.get("/verify-email", verifyEmailController);
 router.post("/verify-email",VerifyToken, SendverifyEmailController);

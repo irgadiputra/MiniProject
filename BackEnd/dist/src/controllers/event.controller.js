@@ -18,6 +18,9 @@ exports.CreateVoucherController = CreateVoucherController;
 exports.deleteVoucherController = deleteVoucherController;
 exports.getEventAttendeesController = getEventAttendeesController;
 exports.createReviewController = createReviewController;
+exports.GetEventListByOrganizerController = GetEventListByOrganizerController;
+exports.getOrganizerEventByIdController = getOrganizerEventByIdController;
+exports.GetEventByIdController = GetEventByIdController;
 const event_service_1 = require("../services/event.service");
 function CreateEventController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -53,6 +56,21 @@ function UpdateEventController(req, res, next) {
         }
     });
 }
+function GetEventByIdController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const eventId = parseInt(req.params.id);
+            const data = yield (0, event_service_1.GetEventByIdService)(eventId);
+            res.status(200).json({
+                message: "Event fetched successfully",
+                data,
+            });
+        }
+        catch (err) {
+            next(err);
+        }
+    });
+}
 function GetEventListController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -63,6 +81,43 @@ function GetEventListController(req, res, next) {
             res.status(200).json({
                 message: "List of Events",
                 data: events,
+            });
+        }
+        catch (err) {
+            next(err);
+        }
+    });
+}
+function GetEventListByOrganizerController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { organizerId } = req.params;
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+            const events = yield (0, event_service_1.GetEventListByOrganizerService)({
+                organizerId: parseInt(organizerId),
+                skip,
+                limit,
+            });
+            res.status(200).json({
+                message: `Events created by organizer ${organizerId}`,
+                data: events,
+            });
+        }
+        catch (err) {
+            next(err);
+        }
+    });
+}
+function getOrganizerEventByIdController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { organizerId, eventId } = req.params;
+            const event = yield (0, event_service_1.GetOrganizerEventByIdService)(parseInt(organizerId), parseInt(eventId));
+            res.status(200).json({
+                message: "Event fetched successfully",
+                data: event,
             });
         }
         catch (err) {
@@ -125,12 +180,11 @@ function deleteVoucherController(req, res, next) {
         try {
             const eventId = parseInt(req.params.id);
             const code = req.params.code;
-            const deletedEvent = yield (0, event_service_1.deleteVoucherService)(Number(eventId), code);
+            const deletedVoucher = yield (0, event_service_1.deleteVoucherService)(eventId, code);
             res.status(200).json({
-                message: "Event deleted successfully",
-                data: deletedEvent,
+                message: "Voucher deleted successfully",
+                data: deletedVoucher,
             });
-            res.json({ message: "Voucher deleted successfully" });
         }
         catch (err) {
             next(err);

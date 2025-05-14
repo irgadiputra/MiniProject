@@ -29,6 +29,7 @@ const handlebars_1 = __importDefault(require("handlebars"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const nodemailer_1 = require("../utils/nodemailer");
+const httpError_1 = require("../utils/httpError");
 function FindUserByEmail(email) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -38,7 +39,12 @@ function FindUserByEmail(email) {
                     first_name: true,
                     last_name: true,
                     password: true,
-                    id: true
+                    id: true,
+                    status_role: true,
+                    referal_code: true,
+                    profile_pict: true,
+                    point: true,
+                    is_verified: true
                 },
                 where: {
                     email,
@@ -58,7 +64,7 @@ function RegisterService(param) {
             const referralBonus = 10000;
             const referrerBonus = 10000;
             const now = new Date();
-            const expiryDate = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 3 months
+            const expiryDate = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 3 months from now
             let newUser = {
                 id: -1,
                 first_name: param.first_name,
@@ -66,7 +72,7 @@ function RegisterService(param) {
                 email: param.email
             };
             if (isExist)
-                throw new Error("Email is registered");
+                throw new httpError_1.HttpError(409, "Email sudah terdaftar");
             yield prisma_1.default.$transaction((t) => __awaiter(this, void 0, void 0, function* () {
                 let referredById = null;
                 let newUserPoint = 0;
@@ -75,7 +81,8 @@ function RegisterService(param) {
                         where: { referal_code: param.referral_code },
                     });
                     if (!referrer)
-                        throw new Error("Referal code is not valid");
+                        throw new httpError_1.HttpError(400, "Kode referral tidak valid");
+                    // Reward the referrer
                     yield t.user.update({
                         where: { id: referrer.id },
                         data: {
@@ -142,15 +149,20 @@ function LoginService(param) {
         try {
             const user = yield FindUserByEmail(param.email);
             if (!user)
-                throw new Error("Email is not registered");
+                throw new httpError_1.HttpError(404, "Email tidak terdaftar");
             const checkPass = yield (0, bcryptjs_1.compare)(param.password, user.password);
             if (!checkPass)
-                throw new Error("Wrong Password");
+                throw new httpError_1.HttpError(401, "Password Salah");
             const payload = {
                 email: user.email,
                 first_name: user.first_name,
                 last_name: user.last_name,
                 id: user.id,
+                profile_pict: user.profile_pict,
+                referal_code: user.referal_code,
+                status_role: user.status_role,
+                point: user.point,
+                is_verified: user.is_verified
             };
             const token = (0, jsonwebtoken_1.sign)(payload, String(config_1.SECRET_KEY), { expiresIn: "1h" });
             return { user: payload, token };
@@ -177,12 +189,10 @@ function UpdateProfileService(file, param, id) {
                 updateData.last_name = param.last_name;
             if (param.email)
                 updateData.email = param.email;
-            if (param.point)
-                updateData.point = Number(param.point);
             if (param.is_verified)
                 updateData.is_verified = Boolean(param.is_verified);
             if (file)
-                updateData.profile_pict = `/public/avatar/${file.filename}`;
+                updateData.profile_pict = `/avt/${file.filename}`;
             // Update password if provided
             if (param.new_password) {
                 if (!param.old_password) {
@@ -205,6 +215,12 @@ function UpdateProfileService(file, param, id) {
                 first_name: updatedUser.first_name,
                 last_name: updatedUser.last_name,
                 id: updatedUser.id,
+                password: updatedUser.password,
+                profile_pict: updatedUser.profile_pict,
+                status_role: user.status_role,
+                referal_code: user.referal_code,
+                point: user.point,
+                is_verified: user.is_verified
             };
             const token = (0, jsonwebtoken_1.sign)(payload, String(config_1.SECRET_KEY), { expiresIn: "1h" });
             return { user: payload, token };
@@ -228,6 +244,10 @@ function KeepLoginService(id) {
                 first_name: user.first_name,
                 last_name: user.last_name,
                 id: user.id,
+                profile_pict: user.profile_pict,
+                referal_code: user.referal_code,
+                status_role: user.status_role,
+                point: user.point
             };
             const token = (0, jsonwebtoken_1.sign)(payload, String(config_1.SECRET_KEY), { expiresIn: "1h" });
             return { user: payload, token };
@@ -252,6 +272,11 @@ function SendVerifyEmailService(id) {
                 first_name: user.first_name,
                 last_name: user.last_name,
                 id: user.id,
+                profile_pict: user.profile_pict,
+                referal_code: user.referal_code,
+                status_role: user.status_role,
+                point: user.point,
+                is_verified: user.is_verified
             };
             const token = (0, jsonwebtoken_1.sign)(payload, String(config_1.SECRET_KEY), { expiresIn: "15m" });
             const templateSource = fs_1.default.readFileSync(templatePath, "utf-8");
